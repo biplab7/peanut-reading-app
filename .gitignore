@@ -1,0 +1,98 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Build outputs
+dist/
+build/
+.expo/
+.next/
+out/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs
+*.log
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# nyc test coverage
+.nyc_output
+
+# Dependency directories
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# parcel-bundler cache (https://parceljs.org/)
+.cache
+.parcel-cache
+
+# TERN
+.tern-port
+
+# API Keys and Credentials (IMPORTANT!)
+google-credentials.json
+*.pem
+ai-reading-companion-*.json
+
+# Supabase
+.supabase/
+
+# Expo
+.expo/
+web-build/
+expo-env.d.ts
+
+# React Native
+*.hprof
+android/app/build/
+ios/build/
+*.xcworkspace
+*.xcuserdata
+
+# Vercel
+.vercel
+
+# Typescript
+*.tsbuildinfo
+
+# Test files (temporary)
+test-*.js

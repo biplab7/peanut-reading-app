@@ -1,0 +1,385 @@
+import { Request, Response } from 'express';
+import { GeminiService } from '../services/geminiService';
+import { supabase } from '../services/supabase';
+import { createError } from '../middleware/errorHandler';
+
+export class StoryController {
+  private geminiService: GeminiService;
+
+  constructor() {
+    this.geminiService = new GeminiService();
+  }
+
+  async generateStory(req: Request, res: Response) {
+    try {
+      const {
+        childId,
+        readingLevel,
+        interests = [],
+        theme,
+        wordCount,
+        educationalObjectives = [],
+        characterName,
+      } = req.body;
+
+      if (!childId || !readingLevel) {
+        throw createError('Child ID and reading level are required', 400);
+      }
+
+      // Get child profile for personalization
+      const { data: childProfile } = await supabase
+        .from('child_profiles')
+        .select('*')
+        .eq('id', childId)
+        .single();
+
+      if (!childProfile) {
+        throw createError('Child profile not found', 404);
+      }
+
+      // Get recent stories to avoid repetition
+      const { data: recentStories } = await supabase
+        .from('reading_sessions')
+        .select('stories(themes)')
+        .eq('child_id', childId)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      const recentThemes = recentStories?.flatMap(session => 
+        session.stories?.themes || []
+      ) || [];
+
+      // Generate story using Gemini
+      const story = await this.geminiService.generatePersonalizedStory(
+        {
+          name: childProfile.name,
+          age: childProfile.age,
+          readingLevel: childProfile.reading_level,
+          interests: interests.length > 0 ? interests : childProfile.interests,
+          recentStories: recentThemes,
+        },
+        {
+          theme,
+          wordCount,
+          educationalObjectives,
+        }
+      );
+
+      // Save story to database
+      const { data: savedStory, error } = await supabase
+        .from('stories')
+        .insert({
+          title: story.title,
+          content: story.content,
+          reading_level: readingLevel,
+          word_count: story.wordCount,
+          estimated_reading_time: story.estimatedReadingTime,
+          themes: story.themes,
+          is_generated: true,
+          metadata: story.metadata,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        throw createError('Failed to save story', 500);
+      }
+
+      res.json({
+        success: true,
+        data: savedStory,
+      });
+    } catch (error) {
+      console.error('Story generation error:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Story generation failed',
+      });
+    }
+  }
+
+  async getStories(req: Request, res: Response) {
+    try {
+      const {
+        readingLevel,
+        theme,
+        limit = 20,
+        offset = 0,
+        isGenerated,
+      } = req.query;
+
+      let query = supabase
+        .from('stories')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (readingLevel) {
+        query = query.eq('reading_level', readingLevel);
+      }
+
+      if (theme) {
+        query = query.contains('themes', [theme]);
+      }
+
+      if (isGenerated !== undefined) {
+        query = query.eq('is_generated', isGenerated === 'true');
+      }
+
+      query = query.range(parseInt(offset as string), parseInt(offset as string) + parseInt(limit as string) - 1);
+
+      const { data: stories, error, count } = await query;
+
+      if (error) {
+        throw createError('Failed to fetch stories', 500);
+      }
+
+      res.json({
+        success: true,
+        data: stories,
+        pagination: {
+          offset: parseInt(offset as string),
+          limit: parseInt(limit as string),
+          total: count || 0,
+        },
+      });
+    } catch (error) {
+      console.error('Get stories error:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to fetch stories',
+      });
+    }
+  }
+
+  async getStoryById(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+
+      const { data: story, error } = await supabase
+        .from('stories')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error || !story) {
+        throw createError('Story not found', 404);
+      }
+
+      res.json({
+        success: true,
+        data: story,
+      });
+    } catch (error) {
+      console.error('Get story error:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to fetch story',
+      });
+    }
+  }
+
+  async favoriteStory(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { childId } = req.body;
+
+      if (!childId) {
+        throw createError('Child ID is required', 400);
+      }
+
+      // Check if story exists
+      const { data: story } = await supabase
+        .from('stories')
+        .select('id')
+        .eq('id', id)
+        .single();
+
+      if (!story) {
+        throw createError('Story not found', 404);
+      }
+
+      // Add to favorites
+      const { data, error } = await supabase
+        .from('story_favorites')
+        .insert({
+          child_id: childId,
+          story_id: id,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        if (error.code === '23505') { // Unique constraint violation
+          throw createError('Story already in favorites', 400);
+        }
+        throw createError('Failed to add favorite', 500);
+      }
+
+      res.json({
+        success: true,
+        data,
+      });
+    } catch (error) {
+      console.error('Favorite story error:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to favorite story',
+      });
+    }
+  }
+
+  async unfavoriteStory(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { childId } = req.body;
+
+      if (!childId) {
+        throw createError('Child ID is required', 400);
+      }
+
+      const { error } = await supabase
+        .from('story_favorites')
+        .delete()
+        .eq('child_id', childId)
+        .eq('story_id', id);
+
+      if (error) {
+        throw createError('Failed to remove favorite', 500);
+      }
+
+      res.json({
+        success: true,
+        message: 'Story removed from favorites',
+      });
+    } catch (error) {
+      console.error('Unfavorite story error:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to unfavorite story',
+      });
+    }
+  }
+
+  async getFeaturedStories(req: Request, res: Response) {
+    try {
+      const { limit = 10 } = req.query;
+
+      // Get stories that are popular or highly rated
+      const { data: stories, error } = await supabase
+        .from('stories')
+        .select(`
+          *,
+          reading_sessions(count)
+        `)
+        .eq('is_generated', false) // Prefer curated stories for featured
+        .order('created_at', { ascending: false })
+        .limit(parseInt(limit as string));
+
+      if (error) {
+        throw createError('Failed to fetch featured stories', 500);
+      }
+
+      res.json({
+        success: true,
+        data: stories,
+      });
+    } catch (error) {
+      console.error('Get featured stories error:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to fetch featured stories',
+      });
+    }
+  }
+
+  async getRecommendedStories(req: Request, res: Response) {
+    try {
+      const { childId } = req.params;
+      const { limit = 10 } = req.query;
+
+      // Get child profile
+      const { data: childProfile } = await supabase
+        .from('child_profiles')
+        .select('*')
+        .eq('id', childId)
+        .single();
+
+      if (!childProfile) {
+        throw createError('Child profile not found', 404);
+      }
+
+      // Get child's reading history to understand preferences
+      const { data: readingSessions } = await supabase
+        .from('reading_sessions')
+        .select(`
+          stories(themes, reading_level),
+          feedback
+        `)
+        .eq('child_id', childId)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      // Get child's favorite themes
+      const readStories = readingSessions || [];
+      const themeFrequency: { [key: string]: number } = {};
+      
+      readStories.forEach(session => {
+        if (session.stories?.themes) {
+          session.stories.themes.forEach((theme: string) => {
+            themeFrequency[theme] = (themeFrequency[theme] || 0) + 1;
+          });
+        }
+      });
+
+      const preferredThemes = Object.keys(themeFrequency)
+        .sort((a, b) => themeFrequency[b] - themeFrequency[a])
+        .slice(0, 5);
+
+      // Build recommendation query
+      let query = supabase
+        .from('stories')
+        .select('*')
+        .eq('reading_level', childProfile.reading_level)
+        .order('created_at', { ascending: false });
+
+      // Filter by preferred themes if available
+      if (preferredThemes.length > 0) {
+        query = query.overlaps('themes', preferredThemes);
+      }
+
+      // Exclude recently read stories
+      const recentStoryIds = readStories
+        .map(session => session.stories?.id)
+        .filter(Boolean)
+        .slice(0, 10);
+
+      if (recentStoryIds.length > 0) {
+        query = query.not('id', 'in', `(${recentStoryIds.join(',')})`);
+      }
+
+      query = query.limit(parseInt(limit as string));
+
+      const { data: stories, error } = await query;
+
+      if (error) {
+        throw createError('Failed to fetch recommended stories', 500);
+      }
+
+      res.json({
+        success: true,
+        data: stories,
+        metadata: {
+          childReadingLevel: childProfile.reading_level,
+          preferredThemes,
+          basedOnSessions: readStories.length,
+        },
+      });
+    } catch (error) {
+      console.error('Get recommended stories error:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to fetch recommended stories',
+      });
+    }
+  }
+}

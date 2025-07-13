@@ -1,0 +1,35 @@
+{
+  "name": "peanut-reading-web",
+  "version": "1.0.0",
+  "description": "Peanut Reading Web App",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "export": "next export"
+  },
+  "dependencies": {
+    "next": "14.0.4",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "@supabase/supabase-js": "^2.39.0",
+    "@supabase/auth-ui-react": "^0.4.6",
+    "@supabase/auth-ui-shared": "^0.1.8",
+    "axios": "^1.6.2",
+    "lucide-react": "^0.263.1",
+    "clsx": "^2.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.0",
+    "eslint": "^8.54.0",
+    "eslint-config-next": "14.0.4",
+    "typescript": "^5.3.2",
+    "tailwindcss": "^3.3.6",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.32"
+  }
+}

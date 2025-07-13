@@ -1,0 +1,51 @@
+{
+  "name": "peanut-reading-backend",
+  "version": "1.0.0",
+  "description": "Backend API for Peanut Reading - AI-Powered Reading Companion for Kids",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "nodemon src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "jest",
+    "lint": "eslint src/**/*.ts"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "dotenv": "^16.3.1",
+    "multer": "^1.4.5-lts.1",
+    "@supabase/supabase-js": "^2.39.0",
+    "@google-cloud/speech": "^6.3.0",
+    "@google-cloud/text-to-speech": "^5.2.0",
+    "@google-ai/generativelanguage": "^2.5.0",
+    "google-auth-library": "^9.4.0",
+    "openai": "^4.24.1",
+    "axios": "^1.6.2",
+    "joi": "^17.11.0",
+    "morgan": "^1.10.0",
+    "compression": "^1.7.4"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/cors": "^2.8.17",
+    "@types/multer": "^1.4.11",
+    "@types/morgan": "^1.9.9",
+    "@types/compression": "^1.7.5",
+    "@types/node": "^20.10.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "eslint": "^8.54.0",
+    "jest": "^29.7.0",
+    "@types/jest": "^29.5.8",
+    "ts-jest": "^29.1.1",
+    "nodemon": "^3.0.2",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.3.2"
+  },
+  "keywords": ["reading", "ai", "children", "education", "speech-recognition"],
+  "author": "Peanut Reading Team",
+  "license": "MIT",
+  "private": true
+}
