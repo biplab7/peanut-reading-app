@@ -88,8 +88,8 @@ function generateDemoStory(wordFamily: string): Story {
 export default function ReadingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const storyId = searchParams.get('storyId');
-  const wordFamily = searchParams.get('wordFamily');
+  const storyId = searchParams?.get('storyId');
+  const wordFamily = searchParams?.get('wordFamily');
 
   const [story, setStory] = useState<Story | null>(null);
   const [isLoading, setIsLoading] = useState(true);
