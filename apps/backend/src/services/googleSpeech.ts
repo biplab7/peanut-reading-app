@@ -3,10 +3,20 @@ import { TextToSpeechClient } from '@google-cloud/text-to-speech';
 import { createError } from '../middleware/errorHandler';
 
 export class GoogleSpeechService {
-  private speechClient: SpeechClient;
-  private ttsClient: TextToSpeechClient;
+  private speechClient: SpeechClient | null = null;
+  private ttsClient: TextToSpeechClient | null = null;
+  private isConfigured: boolean = false;
 
   constructor() {
+    try {
+      this.initializeClients();
+    } catch (error) {
+      console.warn('Google Cloud Speech service not configured:', error);
+      console.warn('Speech recognition will be disabled');
+    }
+  }
+
+  private initializeClients() {
     const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID;
     
     if (!projectId) {
@@ -42,6 +52,7 @@ export class GoogleSpeechService {
 
     this.speechClient = new SpeechClient(clientConfig);
     this.ttsClient = new TextToSpeechClient(clientConfig);
+    this.isConfigured = true;
   }
 
   async recognizeSpeech(audioBuffer: Buffer, options: {
@@ -50,6 +61,10 @@ export class GoogleSpeechService {
     enableWordTimeOffsets?: boolean;
     enableAutomaticPunctuation?: boolean;
   } = {}) {
+    if (!this.isConfigured || !this.speechClient) {
+      throw createError('Google Cloud Speech service not configured', 503);
+    }
+
     try {
       const {
         sampleRateHertz = 16000,
@@ -126,6 +141,10 @@ export class GoogleSpeechService {
     speakingRate?: number;
     pitch?: number;
   } = {}) {
+    if (!this.isConfigured || !this.ttsClient) {
+      throw createError('Google Cloud Text-to-Speech service not configured', 503);
+    }
+
     try {
       const {
         languageCode = 'en-US',
@@ -171,6 +190,10 @@ export class GoogleSpeechService {
   async analyzePronunciation(audioBuffer: Buffer, expectedText: string, options: {
     languageCode?: string;
   } = {}) {
+    if (!this.isConfigured || !this.speechClient) {
+      throw createError('Google Cloud Speech service not configured', 503);
+    }
+
     try {
       const { languageCode = 'en-US' } = options;
 
