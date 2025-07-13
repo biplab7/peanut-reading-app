@@ -20,7 +20,15 @@ export class StoryController {
         wordCount,
         educationalObjectives = [],
         characterName,
+        wordFamily,
+        examples = [],
+        difficulty = 'beginner'
       } = req.body;
+
+      // If word family is provided, generate a simpler story focused on that word family
+      if (wordFamily && examples.length > 0) {
+        return this.generateWordFamilyStory(req, res);
+      }
 
       if (!childId || !readingLevel) {
         throw createError('Child ID and reading level are required', 400);
@@ -379,6 +387,80 @@ export class StoryController {
       res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : 'Failed to fetch recommended stories',
+      });
+    }
+  }
+
+  async generateWordFamilyStory(req: Request, res: Response) {
+    try {
+      const {
+        wordFamily,
+        examples = [],
+        difficulty = 'beginner',
+        theme = 'adventure'
+      } = req.body;
+
+      if (!wordFamily || examples.length === 0) {
+        throw createError('Word family and examples are required', 400);
+      }
+
+      // Generate a simple story focused on the word family
+      const story = await this.geminiService.generateWordFamilyStory({
+        wordFamily,
+        examples,
+        difficulty,
+        theme
+      });
+
+      // Create a simplified story object for immediate use
+      const wordFamilyStory = {
+        id: `wf-${wordFamily}-${Date.now()}`,
+        title: story.title || `The ${wordFamily.toUpperCase()} Family Adventure`,
+        content: story.content,
+        wordFamily,
+        targetWords: examples,
+        reading_level: difficulty,
+        word_count: story.content.split(' ').length,
+        estimated_reading_time: Math.ceil(story.content.split(' ').length / 50), // 50 words per minute
+        themes: [theme, 'word-family'],
+        is_generated: true,
+        metadata: {
+          wordFamily,
+          targetWords: examples,
+          generatedAt: new Date().toISOString()
+        }
+      };
+
+      // Save to database for tracking
+      const { data: savedStory, error } = await supabase
+        .from('stories')
+        .insert({
+          title: wordFamilyStory.title,
+          content: wordFamilyStory.content,
+          reading_level: difficulty,
+          word_count: wordFamilyStory.word_count,
+          estimated_reading_time: wordFamilyStory.estimated_reading_time,
+          themes: wordFamilyStory.themes,
+          is_generated: true,
+          metadata: wordFamilyStory.metadata,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.warn('Failed to save word family story to database:', error);
+        // Return the story anyway for immediate use
+      }
+
+      res.json({
+        success: true,
+        data: savedStory || wordFamilyStory,
+      });
+    } catch (error) {
+      console.error('Word family story generation error:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Word family story generation failed',
       });
     }
   }

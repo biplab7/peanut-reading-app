@@ -8,8 +8,8 @@ export default function HomePage() {
   const [isGenerating, setIsGenerating] = useState(false);
 
   const handleStartReading = () => {
-    // Navigate to story selection or reading interface
-    alert('🎉 Reading adventure feature coming soon! This will take you to the story selection page.');
+    // Navigate to word families selection page
+    window.location.href = '/word-families';
   };
 
   const handleGenerateStory = async () => {

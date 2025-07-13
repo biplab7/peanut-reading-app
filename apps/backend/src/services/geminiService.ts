@@ -436,4 +436,80 @@ Respond with JSON:
       };
     }
   }
+
+  async generateWordFamilyStory(options: {
+    wordFamily: string;
+    examples: string[];
+    difficulty: string;
+    theme: string;
+  }) {
+    try {
+      const { wordFamily, examples, difficulty, theme } = options;
+      
+      const prompt = `Create a short, engaging story for children that focuses on the word family "-${wordFamily}". 
+
+Requirements:
+- Use these specific words: ${examples.join(', ')}
+- Difficulty level: ${difficulty}
+- Theme: ${theme}
+- Story should be 3-5 sentences long
+- Use simple, clear language appropriate for beginning readers
+- Make sure to use ALL the provided words naturally in the story
+- Create a fun, positive story that children will enjoy reading aloud
+
+Word family: -${wordFamily}
+Target words to include: ${examples.join(', ')}
+
+Format the response as JSON:
+{
+  "title": "Story Title",
+  "content": "Story text that naturally includes all the target words..."
+}`;
+
+      const result = await this.model.generateContent(prompt);
+      const response = await result.response;
+      const storyText = response.text();
+
+      try {
+        const jsonMatch = storyText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          return {
+            title: parsed.title || `The ${wordFamily.toUpperCase()} Family Adventure`,
+            content: parsed.content || storyText,
+          };
+        }
+      } catch (parseError) {
+        console.error('Failed to parse word family story JSON:', parseError);
+      }
+
+      // Fallback: generate a simple story
+      const fallbackContent = this.generateFallbackWordFamilyStory(wordFamily, examples);
+      return {
+        title: `The ${wordFamily.toUpperCase()} Family Adventure`,
+        content: fallbackContent,
+      };
+    } catch (error) {
+      console.error('Word family story generation error:', error);
+      // Generate a simple fallback story
+      const fallbackContent = this.generateFallbackWordFamilyStory(options.wordFamily, options.examples);
+      return {
+        title: `The ${options.wordFamily.toUpperCase()} Family Adventure`,
+        content: fallbackContent,
+      };
+    }
+  }
+
+  private generateFallbackWordFamilyStory(wordFamily: string, examples: string[]): string {
+    // Simple fallback story template
+    const stories: { [key: string]: (words: string[]) => string } = {
+      'at': (words) => `There once was a ${words[0]} who wore a ${words[1]}. The ${words[0]} sat on a ${words[2]} with a ${words[3]}. They all had a nice chat and became the best of friends!`,
+      'an': (words) => `A kind ${words[1]} had a ${words[0]}. He put the ${words[0]} in a ${words[2]} and ${words[3]} to the store. Everyone smiled at the helpful ${words[1]}!`,
+      'ap': (words) => `The child put on a ${words[0]} and looked at the ${words[1]}. After a short ${words[2]}, they heard a gentle ${words[3]} on the door. It was time for a fun adventure!`,
+      'default': (words) => `Once upon a time, there were special words that all sounded alike: ${words.join(', ')}. Each word was unique and important in its own special way. The end!`
+    };
+
+    const storyTemplate = stories[wordFamily] || stories['default'];
+    return storyTemplate(examples);
+  }
 }
