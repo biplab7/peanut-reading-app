@@ -208,8 +208,8 @@ export default function ReadingPage() {
     
     let highlightedText = text;
     story.targetWords.forEach((word, index) => {
-      const wordProgress = wordProgress[index];
-      const isCorrect = wordProgress?.correct;
+      const wordProg = wordProgress[index];
+      const isCorrect = wordProg?.correct;
       const isCurrent = currentWordIndex === index;
       
       const colorClass = isCorrect 
