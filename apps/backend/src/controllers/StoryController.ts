@@ -4,10 +4,15 @@ import { supabase } from '../services/supabase';
 import { createError } from '../middleware/errorHandler';
 
 export class StoryController {
-  private geminiService: GeminiService;
+  private geminiService: GeminiService | null;
 
   constructor() {
-    this.geminiService = new GeminiService();
+    try {
+      this.geminiService = new GeminiService();
+    } catch (error) {
+      console.warn('GeminiService initialization failed:', error);
+      this.geminiService = null;
+    }
   }
 
   async generateStory(req: Request, res: Response) {
@@ -405,12 +410,18 @@ export class StoryController {
       }
 
       // Generate a simple story focused on the word family
-      const story = await this.geminiService.generateWordFamilyStory({
-        wordFamily,
-        examples,
-        difficulty,
-        theme
-      });
+      let story;
+      if (this.geminiService) {
+        story = await this.geminiService.generateWordFamilyStory({
+          wordFamily,
+          examples,
+          difficulty,
+          theme
+        });
+      } else {
+        // Fallback story generation when GeminiService is unavailable
+        story = this.generateFallbackWordFamilyStory(wordFamily, examples);
+      }
 
       // Create a simplified story object for immediate use
       const wordFamilyStory = {
@@ -463,5 +474,22 @@ export class StoryController {
         error: error instanceof Error ? error.message : 'Word family story generation failed',
       });
     }
+  }
+
+  private generateFallbackWordFamilyStory(wordFamily: string, examples: string[]) {
+    const storyTemplates: { [key: string]: (words: string[]) => string } = {
+      'at': (words) => `There once was a ${words[0]} who wore a special ${words[1]}. The ${words[0]} sat on a soft ${words[2]} with a friendly ${words[3]}. They saw a little ${words[4] || 'rat'} and had a nice chat about sharing the ${words[1]}.`,
+      'an': (words) => `A helpful ${words[1] || 'man'} had a big ${words[0] || 'can'}. He put the ${words[0] || 'can'} in a shiny ${words[2] || 'pan'} and ${words[3] || 'ran'} to his ${words[4] || 'van'}. Everyone smiled at the kind ${words[1] || 'man'}!`,
+      'ap': (words) => `A little child wore a favorite ${words[0] || 'cap'} and looked at a treasure ${words[1] || 'map'}. After a short ${words[2] || 'nap'}, they heard a gentle ${words[3] || 'tap'} at the door. Through a small ${words[4] || 'gap'}, adventure awaited!`,
+      'default': (words) => `Once upon a time, there were special words that all sounded alike: ${words.join(', ')}. Each word was unique and important in its own special way. The children loved to read these words together and had wonderful adventures. The end!`
+    };
+
+    const storyTemplate = storyTemplates[wordFamily] || storyTemplates['default'];
+    const content = storyTemplate(examples);
+    
+    return {
+      title: `The ${wordFamily.toUpperCase()} Family Adventure`,
+      content: content
+    };
   }
 }
