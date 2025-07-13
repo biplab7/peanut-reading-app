@@ -125,15 +125,17 @@ export default function WordFamiliesPage() {
       if (response.ok) {
         const story = await response.json();
         // Navigate to reading page with story data
-        router.push(`/reading?storyId=${story.id}&wordFamily=${family.family}`);
+        router.push(`/reading?storyId=${story.data?.id || 'demo'}&wordFamily=${family.family}`);
       } else {
-        alert('😅 Story generation failed. Please try again!');
-        setSelectedFamily(null);
+        // Fallback: navigate to reading page with demo story
+        console.warn('Story generation failed, using demo story');
+        router.push(`/reading?storyId=demo&wordFamily=${family.family}`);
       }
     } catch (error) {
       console.error('Story generation error:', error);
-      alert('😅 Story generation is currently offline. Please try again later!');
-      setSelectedFamily(null);
+      // Fallback: navigate to reading page with demo story
+      console.warn('API error, using demo story for word family:', family.family);
+      router.push(`/reading?storyId=demo&wordFamily=${family.family}`);
     } finally {
       setIsGenerating(false);
     }

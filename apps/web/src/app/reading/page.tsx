@@ -19,6 +19,72 @@ interface WordProgress {
   feedback: string;
 }
 
+// Demo story generator for different word families
+function generateDemoStory(wordFamily: string): Story {
+  const storyTemplates: { [key: string]: { words: string[]; story: string; title: string } } = {
+    'at': {
+      words: ['cat', 'hat', 'mat', 'bat', 'rat'],
+      story: 'Once upon a time, there was a cat who wore a special hat. The cat sat on a soft mat with a friendly bat. They saw a little rat who was looking for a new hat. The cat, bat, and rat had a nice chat about sharing the hat.',
+      title: 'The Cat in the Hat'
+    },
+    'an': {
+      words: ['can', 'man', 'pan', 'ran', 'van'],
+      story: 'A helpful man had a big can. He put the can in a shiny pan and ran to his van. The man drove the van to help others and everyone said he was the best man with a can!',
+      title: 'The Man with the Can'
+    },
+    'ap': {
+      words: ['cap', 'map', 'nap', 'tap', 'gap'],
+      story: 'A little boy wore his favorite cap and looked at a treasure map. After a short nap, he heard a gentle tap at the door. Through a small gap, he saw his friend ready for adventure!',
+      title: 'The Adventure Map'
+    },
+    'ag': {
+      words: ['bag', 'tag', 'rag', 'wag', 'flag'],
+      story: 'The dog would wag its tail when it saw the colorful flag. In the bag was a special tag and a soft rag. The dog loved to wag and play with the flag every day.',
+      title: 'The Happy Dog'
+    },
+    'ig': {
+      words: ['big', 'dig', 'fig', 'pig', 'wig'],
+      story: 'A big pig loved to dig in the garden. The pig found a sweet fig and wore a funny wig. All the animals thought the big pig in the wig looked very silly!',
+      title: 'The Big Pig'
+    },
+    'og': {
+      words: ['dog', 'fog', 'log', 'jog', 'frog'],
+      story: 'Every morning, a dog and a frog would jog together. One foggy day, they sat on a log and became best friends. The dog and frog loved to jog through the fog.',
+      title: 'Friends in the Fog'
+    },
+    'ug': {
+      words: ['bug', 'hug', 'mug', 'rug', 'jug'],
+      story: 'A tiny bug lived on a cozy rug. Every day, the bug would drink from a small mug and give everyone a warm hug. The friendly bug kept water in a little jug.',
+      title: 'The Friendly Bug'
+    },
+    'in': {
+      words: ['bin', 'fin', 'pin', 'win', 'tin'],
+      story: 'A fish with a shiny fin lived in a tin bin. The fish hoped to win a race using a special pin. With the lucky pin, the fish was sure to win!',
+      title: 'The Winning Fish'
+    },
+    'op': {
+      words: ['hop', 'mop', 'pop', 'top', 'stop'],
+      story: 'A bunny loved to hop to the very top of the hill. With a mop in hand, the bunny would stop and clean up. Then hop, pop, and stop for a fun game!',
+      title: 'Hop to the Top'
+    },
+    'et': {
+      words: ['bet', 'get', 'let', 'net', 'pet'],
+      story: 'A child wanted to get a new pet. With a fishing net, they tried to catch one. "Let me help," said a friend. "I bet we can get you the perfect pet!"',
+      title: 'Getting a Pet'
+    }
+  };
+
+  const template = storyTemplates[wordFamily] || storyTemplates['at'];
+  
+  return {
+    id: `demo-${wordFamily}`,
+    title: template.title,
+    content: template.story,
+    wordFamily: wordFamily,
+    targetWords: template.words
+  };
+}
+
 export default function ReadingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -41,15 +107,9 @@ export default function ReadingPage() {
   // Load story data
   useEffect(() => {
     const loadStory = async () => {
-      if (!storyId || !wordFamily) {
-        // Generate a sample story for demo
-        const sampleStory: Story = {
-          id: '1',
-          title: `The ${wordFamily?.toUpperCase()} Family Adventure`,
-          content: `Once upon a time, there was a cat who wore a hat. The cat sat on a mat with a bat. They were looking at a rat who was quite fat. The cat and the bat wanted to chat with the rat about getting a new hat.`,
-          wordFamily: wordFamily || 'at',
-          targetWords: ['cat', 'hat', 'mat', 'bat', 'rat', 'fat', 'chat', 'sat']
-        };
+      if (!storyId || !wordFamily || storyId === 'demo') {
+        // Generate a sample story for demo based on word family
+        const sampleStory = generateDemoStory(wordFamily || 'at');
         setStory(sampleStory);
         setWordProgress(sampleStory.targetWords.map(word => ({
           word,
