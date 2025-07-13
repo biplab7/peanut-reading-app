@@ -122,7 +122,7 @@ export class GoogleSpeechService {
     languageCode?: string;
     voiceName?: string;
     gender?: 'MALE' | 'FEMALE' | 'NEUTRAL';
-    audioEncoding?: 'MP3' | 'WAV' | 'OGG_OPUS';
+    audioFormat?: 'MP3' | 'LINEAR16' | 'OGG_OPUS';
     speakingRate?: number;
     pitch?: number;
   } = {}) {
@@ -131,7 +131,7 @@ export class GoogleSpeechService {
         languageCode = 'en-US',
         voiceName = 'en-US-Journey-F', // Child-friendly voice
         gender = 'FEMALE',
-        audioEncoding = 'MP3',
+        audioFormat = 'MP3',
         speakingRate = 0.9, // Slightly slower for children
         pitch = 2.0, // Higher pitch for children
       } = options;
@@ -144,7 +144,7 @@ export class GoogleSpeechService {
           ssmlGender: gender,
         },
         audioConfig: {
-          audioEncoding,
+          audioEncoding: audioFormat,
           speakingRate,
           pitch,
           volumeGainDb: 0.0,
@@ -160,7 +160,7 @@ export class GoogleSpeechService {
 
       return {
         audioContent: response.audioContent,
-        audioEncoding,
+        audioEncoding: audioFormat,
       };
     } catch (error) {
       console.error('Google TTS error:', error);

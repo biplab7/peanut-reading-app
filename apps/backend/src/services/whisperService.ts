@@ -207,15 +207,15 @@ export class WhisperService {
     return Math.max(0, Math.min(100, fluencyScore));
   }
 
-  private generateChildFeedback(analysis: any, childAge: number) {
+  public generateChildFeedback(analysis: any, childAge: number) {
     const { accuracy, wordsPerMinute, fluencyScore, mistakes } = analysis;
     
     const feedback = {
       overallScore: Math.round((accuracy + fluencyScore) / 2),
-      strengths: [],
-      improvements: [],
+      strengths: [] as string[],
+      improvements: [] as string[],
       encouragement: '',
-      suggestions: [],
+      suggestions: [] as string[],
     };
 
     // Age-appropriate feedback

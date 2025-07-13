@@ -45,7 +45,7 @@ export class StoryController {
         .order('created_at', { ascending: false })
         .limit(5);
 
-      const recentThemes = recentStories?.flatMap(session => 
+      const recentThemes = recentStories?.flatMap((session: any) => 
         session.stories?.themes || []
       ) || [];
 
@@ -323,7 +323,7 @@ export class StoryController {
       const readStories = readingSessions || [];
       const themeFrequency: { [key: string]: number } = {};
       
-      readStories.forEach(session => {
+      readStories.forEach((session: any) => {
         if (session.stories?.themes) {
           session.stories.themes.forEach((theme: string) => {
             themeFrequency[theme] = (themeFrequency[theme] || 0) + 1;
@@ -349,7 +349,7 @@ export class StoryController {
 
       // Exclude recently read stories
       const recentStoryIds = readStories
-        .map(session => session.stories?.id)
+        .map((session: any) => session.stories?.id)
         .filter(Boolean)
         .slice(0, 10);
 

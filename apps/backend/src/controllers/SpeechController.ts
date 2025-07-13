@@ -76,8 +76,8 @@ export class SpeechController {
       // Analyze reading accuracy
       const analysis = this.analyzeReadingAccuracy(transcript, expectedText);
       
-      // Generate child-friendly feedback
-      const feedback = this.generateChildFeedback(analysis, childAge);
+      // Generate child-friendly feedback using WhisperService
+      const feedback = this.whisperService.generateChildFeedback(analysis, childAge);
 
       res.json({
         success: true,

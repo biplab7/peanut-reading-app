@@ -20,6 +20,7 @@
     "@google-cloud/speech": "^6.3.0",
     "@google-cloud/text-to-speech": "^5.2.0",
     "@google-ai/generativelanguage": "^2.5.0",
+    "@google/generative-ai": "^0.17.1",
     "google-auth-library": "^9.4.0",
     "openai": "^4.24.1",
     "axios": "^1.6.2",
