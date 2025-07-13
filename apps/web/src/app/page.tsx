@@ -19,9 +19,11 @@ export default function HomePage() {
     try {
       console.log('🌐 Making API call to /api/stories/generate...');
       console.log('📝 Request data:', {
-        level: 'beginner',
-        theme: 'adventure', 
-        character: 'friendly animal'
+        childId: 'demo-child-123',
+        readingLevel: 'beginner',
+        theme: 'adventure',
+        interests: ['animals', 'adventure'],
+        characterName: 'friendly animal'
       });
       
       const startTime = Date.now();
@@ -31,9 +33,11 @@ export default function HomePage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          level: 'beginner',
+          childId: 'demo-child-123',
+          readingLevel: 'beginner',
           theme: 'adventure',
-          character: 'friendly animal'
+          interests: ['animals', 'adventure'],
+          characterName: 'friendly animal'
         })
       });
       

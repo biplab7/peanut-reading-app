@@ -109,7 +109,9 @@ export default function WordFamiliesPage() {
       wordFamily: family.family,
       examples: family.examples,
       difficulty: family.difficulty,
-      theme: 'adventure'
+      theme: 'adventure',
+      childId: 'demo-child-123',
+      readingLevel: family.difficulty
     });
 
     setSelectedFamily(family.family);
@@ -128,7 +130,9 @@ export default function WordFamiliesPage() {
           wordFamily: family.family,
           examples: family.examples,
           difficulty: family.difficulty,
-          theme: 'adventure'
+          theme: 'adventure',
+          childId: 'demo-child-123',
+          readingLevel: family.difficulty
         })
       });
 
