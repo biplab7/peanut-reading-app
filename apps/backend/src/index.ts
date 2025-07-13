@@ -52,8 +52,31 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     service: 'Peanut Reading API',
     version: '1.1.0',
-    features: ['word-family-stories', 'debug-logging']
+    features: ['word-family-stories', 'debug-logging'],
+    commit: '0b21ef8'
   });
+});
+
+// Deployment verification endpoint
+app.get('/api/debug/methods', (req, res) => {
+  try {
+    const { StoryController } = require('./controllers/StoryController');
+    const controller = new StoryController();
+    const methods = Object.getOwnPropertyNames(Object.getPrototypeOf(controller));
+    
+    res.json({
+      success: true,
+      availableMethods: methods,
+      hasWordFamilyMethod: methods.includes('generateWordFamilyStory'),
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 // API Routes

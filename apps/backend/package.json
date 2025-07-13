@@ -1,6 +1,6 @@
 {
   "name": "peanut-reading-backend",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Backend API for Peanut Reading - AI-Powered Reading Companion for Kids",
   "main": "dist/index.js",
   "scripts": {
