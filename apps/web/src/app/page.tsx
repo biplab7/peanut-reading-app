@@ -5,6 +5,42 @@ import { BookOpen, Mic, Sparkles, Trophy, Play, Heart } from 'lucide-react';
 
 export default function HomePage() {
   const [isLoading, setIsLoading] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const handleStartReading = () => {
+    // Navigate to story selection or reading interface
+    alert('🎉 Reading adventure feature coming soon! This will take you to the story selection page.');
+  };
+
+  const handleGenerateStory = async () => {
+    setIsGenerating(true);
+    try {
+      // Call the story generation API
+      const response = await fetch('/api/stories/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          level: 'beginner',
+          theme: 'adventure',
+          character: 'friendly animal'
+        })
+      });
+      
+      if (response.ok) {
+        const story = await response.json();
+        alert(`✨ New story generated: "${story.title}"! \n\nThis will soon redirect you to read the story.`);
+      } else {
+        alert('😅 Story generation is currently offline. Please try again later!');
+      }
+    } catch (error) {
+      console.error('Story generation error:', error);
+      alert('😅 Story generation is currently offline. Please try again later!');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   const features = [
     {
@@ -68,13 +104,21 @@ export default function HomePage() {
         </div>
         
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-          <button className="btn-primary flex items-center gap-2">
+          <button 
+            onClick={handleStartReading}
+            className="btn-primary flex items-center gap-2"
+            disabled={isLoading}
+          >
             <Play className="w-5 h-5" />
             Start Reading Adventure
           </button>
-          <button className="btn-secondary flex items-center gap-2">
+          <button 
+            onClick={handleGenerateStory}
+            className="btn-secondary flex items-center gap-2"
+            disabled={isGenerating}
+          >
             <Sparkles className="w-5 h-5" />
-            Generate New Story
+            {isGenerating ? 'Generating...' : 'Generate New Story'}
           </button>
         </div>
       </div>
