@@ -22,7 +22,7 @@ app.use(helmet());
 // Configure CORS for both development and production
 const corsOrigins = [
   process.env.FRONTEND_URL || 'http://localhost:3000',
-  'https://your-peanut-reading-app.vercel.app', // Update with your actual Vercel URL
+  'https://peanut-reading.vercel.app',
   'http://localhost:3000',
   'http://localhost:3001'
 ];
