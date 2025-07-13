@@ -11,6 +11,10 @@ const nextConfig = {
   async rewrites() {
     return [
       {
+        source: '/api/health',
+        destination: 'https://peanut-reading-app.onrender.com/health'
+      },
+      {
         source: '/api/:path*',
         destination: 'https://peanut-reading-app.onrender.com/api/:path*'
       }
