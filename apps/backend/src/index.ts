@@ -50,7 +50,9 @@ app.get('/health', (req, res) => {
   res.status(200).json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
-    service: 'Peanut Reading API'
+    service: 'Peanut Reading API',
+    version: '1.1.0',
+    features: ['word-family-stories', 'debug-logging']
   });
 });
 
