@@ -10,6 +10,12 @@ export class SpeechController {
   constructor() {
     this.googleSpeech = new GoogleSpeechService();
     this.whisperService = new WhisperService();
+    
+    // Bind methods to ensure 'this' context
+    this.recognizeSpeech = this.recognizeSpeech.bind(this);
+    this.analyzeSpeech = this.analyzeSpeech.bind(this);
+    this.generateFeedback = this.generateFeedback.bind(this);
+    this.synthesizeText = this.synthesizeText.bind(this);
   }
 
   async recognizeSpeech(req: Request, res: Response) {
