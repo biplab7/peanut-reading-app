@@ -63,6 +63,10 @@ export class StoryController {
       ) || [];
 
       // Generate story using Gemini
+      if (!this.geminiService) {
+        throw createError('Story generation service is not available', 503);
+      }
+      
       const story = await this.geminiService.generatePersonalizedStory(
         {
           name: childProfile.name,
