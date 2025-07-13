@@ -104,11 +104,21 @@ export default function WordFamiliesPage() {
   };
 
   const handleFamilySelect = async (family: WordFamily) => {
+    console.log('🎯 Starting story generation for word family:', family.family);
+    console.log('📝 Request data:', {
+      wordFamily: family.family,
+      examples: family.examples,
+      difficulty: family.difficulty,
+      theme: 'adventure'
+    });
+
     setSelectedFamily(family.family);
     setIsGenerating(true);
 
     try {
-      // Generate story for the selected word family
+      console.log('🌐 Making API call to /api/stories/generate...');
+      const startTime = Date.now();
+      
       const response = await fetch('/api/stories/generate', {
         method: 'POST',
         headers: {
@@ -122,21 +132,49 @@ export default function WordFamiliesPage() {
         })
       });
 
+      const endTime = Date.now();
+      const requestTime = endTime - startTime;
+      
+      console.log(`⏱️ API call completed in ${requestTime}ms`);
+      console.log('📊 Response status:', response.status, response.statusText);
+      console.log('🔍 Response headers:', Object.fromEntries(response.headers.entries()));
+
+      const responseText = await response.text();
+      console.log('📄 Raw response body:', responseText);
+
+      let story;
+      try {
+        story = JSON.parse(responseText);
+        console.log('✅ Parsed response data:', story);
+      } catch (parseError) {
+        console.error('❌ Failed to parse JSON response:', parseError);
+        console.log('📄 Response was not valid JSON:', responseText);
+        throw new Error('Invalid JSON response from server');
+      }
+
       if (response.ok) {
-        const story = await response.json();
-        // Navigate to reading page with story data
-        router.push(`/reading?storyId=${story.data?.id || 'demo'}&wordFamily=${family.family}`);
+        console.log('✅ API call successful!');
+        console.log('📚 Generated story:', story);
+        const storyId = story.data?.id || story.id || 'demo';
+        console.log('🔗 Navigating to reading page with storyId:', storyId);
+        router.push(`/reading?storyId=${storyId}&wordFamily=${family.family}`);
       } else {
-        // Fallback: navigate to reading page with demo story
-        console.warn('Story generation failed, using demo story');
+        console.warn('⚠️ API call failed with status:', response.status);
+        console.warn('📄 Error response:', story);
+        console.warn('🔄 Falling back to demo story');
         router.push(`/reading?storyId=demo&wordFamily=${family.family}`);
       }
     } catch (error) {
-      console.error('Story generation error:', error);
-      // Fallback: navigate to reading page with demo story
-      console.warn('API error, using demo story for word family:', family.family);
+      console.error('❌ Story generation error occurred:', error);
+      console.error('🔍 Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
+      console.warn('🔄 Using demo story due to API error for word family:', family.family);
       router.push(`/reading?storyId=demo&wordFamily=${family.family}`);
     } finally {
+      console.log('🏁 Story generation process completed');
       setIsGenerating(false);
     }
   };

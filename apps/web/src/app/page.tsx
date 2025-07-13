@@ -13,9 +13,18 @@ export default function HomePage() {
   };
 
   const handleGenerateStory = async () => {
+    console.log('🎯 Starting general story generation from homepage');
     setIsGenerating(true);
+    
     try {
-      // Call the story generation API
+      console.log('🌐 Making API call to /api/stories/generate...');
+      console.log('📝 Request data:', {
+        level: 'beginner',
+        theme: 'adventure', 
+        character: 'friendly animal'
+      });
+      
+      const startTime = Date.now();
       const response = await fetch('/api/stories/generate', {
         method: 'POST',
         headers: {
@@ -28,16 +37,42 @@ export default function HomePage() {
         })
       });
       
+      const endTime = Date.now();
+      const requestTime = endTime - startTime;
+      
+      console.log(`⏱️ API call completed in ${requestTime}ms`);
+      console.log('📊 Response status:', response.status, response.statusText);
+      
+      const responseText = await response.text();
+      console.log('📄 Raw response body:', responseText);
+      
+      let story;
+      try {
+        story = JSON.parse(responseText);
+        console.log('✅ Parsed response data:', story);
+      } catch (parseError) {
+        console.error('❌ Failed to parse JSON response:', parseError);
+        throw new Error('Invalid JSON response from server');
+      }
+      
       if (response.ok) {
-        const story = await response.json();
-        alert(`✨ New story generated: "${story.title}"! \n\nThis will soon redirect you to read the story.`);
+        console.log('✅ General story generation successful!');
+        alert(`✨ New story generated: "${story.title || story.data?.title || 'Untitled'}"! \n\nThis will soon redirect you to read the story.`);
       } else {
+        console.warn('⚠️ API call failed with status:', response.status);
+        console.warn('📄 Error response:', story);
         alert('😅 Story generation is currently offline. Please try again later!');
       }
     } catch (error) {
-      console.error('Story generation error:', error);
+      console.error('❌ Story generation error occurred:', error);
+      console.error('🔍 Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
       alert('😅 Story generation is currently offline. Please try again later!');
     } finally {
+      console.log('🏁 General story generation process completed');
       setIsGenerating(false);
     }
   };

@@ -107,9 +107,13 @@ export default function ReadingPage() {
   // Load story data
   useEffect(() => {
     const loadStory = async () => {
+      console.log('📖 Loading story data...');
+      console.log('🔍 URL params:', { storyId, wordFamily });
+      
       if (!storyId || !wordFamily || storyId === 'demo') {
-        // Generate a sample story for demo based on word family
+        console.log('🎭 Using demo story for word family:', wordFamily || 'at');
         const sampleStory = generateDemoStory(wordFamily || 'at');
+        console.log('📚 Generated demo story:', sampleStory);
         setStory(sampleStory);
         setWordProgress(sampleStory.targetWords.map(word => ({
           word,
@@ -117,12 +121,16 @@ export default function ReadingPage() {
           correct: false,
           feedback: ''
         })));
+        console.log('✅ Demo story loaded successfully');
       } else {
-        // In real implementation, fetch story from API
+        console.log('🌐 Fetching story from API with ID:', storyId);
         try {
           const response = await fetch(`/api/stories/${storyId}`);
+          console.log('📊 Story fetch response status:', response.status, response.statusText);
+          
           if (response.ok) {
             const storyData = await response.json();
+            console.log('✅ Story fetched successfully:', storyData);
             setStory(storyData);
             setWordProgress(storyData.targetWords?.map((word: string) => ({
               word,
@@ -130,12 +138,32 @@ export default function ReadingPage() {
               correct: false,
               feedback: ''
             })) || []);
+          } else {
+            console.warn('⚠️ Failed to fetch story, using demo instead');
+            const sampleStory = generateDemoStory(wordFamily || 'at');
+            setStory(sampleStory);
+            setWordProgress(sampleStory.targetWords.map(word => ({
+              word,
+              attempts: 0,
+              correct: false,
+              feedback: ''
+            })));
           }
         } catch (error) {
-          console.error('Failed to load story:', error);
+          console.error('❌ Failed to load story from API:', error);
+          console.log('🔄 Falling back to demo story');
+          const sampleStory = generateDemoStory(wordFamily || 'at');
+          setStory(sampleStory);
+          setWordProgress(sampleStory.targetWords.map(word => ({
+            word,
+            attempts: 0,
+            correct: false,
+            feedback: ''
+          })));
         }
       }
       setIsLoading(false);
+      console.log('🏁 Story loading process completed');
     };
 
     loadStory();
