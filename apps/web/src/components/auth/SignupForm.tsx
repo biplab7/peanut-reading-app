@@ -109,6 +109,11 @@ export default function SignupForm({ onSwitchToLogin }: SignupFormProps) {
         localStorage.setItem('auth_session', JSON.stringify(data.session));
         
         // Get the profile that was automatically created
+        if (!data.user) {
+          setError('User creation failed');
+          return;
+        }
+
         const { data: profile } = await supabase
           .from('profiles')
           .select('*')
