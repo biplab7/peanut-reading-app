@@ -8,8 +8,19 @@ export class SpeechController {
   private whisperService: WhisperService;
 
   constructor() {
-    this.googleSpeech = new GoogleSpeechService();
-    this.whisperService = new WhisperService();
+    try {
+      this.googleSpeech = new GoogleSpeechService();
+    } catch (error) {
+      console.warn('GoogleSpeechService initialization failed:', error);
+      this.googleSpeech = null as any;
+    }
+    
+    try {
+      this.whisperService = new WhisperService();
+    } catch (error) {
+      console.warn('WhisperService initialization failed:', error);
+      this.whisperService = null as any;
+    }
     
     // Bind methods to ensure 'this' context
     this.recognizeSpeech = this.recognizeSpeech.bind(this);

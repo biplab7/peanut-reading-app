@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { supabase } from '../config/supabase';
+import { AuthenticatedRequest } from '../middleware/auth';
 
 export class AuthController {
   async register(req: Request, res: Response): Promise<void> {
@@ -143,9 +144,15 @@ export class AuthController {
     }
   }
 
-  async createChildProfile(req: Request, res: Response): Promise<void> {
+  async createChildProfile(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const parentId = req.headers.authorization?.replace('Bearer ', '');
+      const parentId = req.user?.id;
+      
+      if (!parentId) {
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
+      }
+      
       const { name, age, readingLevel, interests, avatarUrl, preferences } = req.body;
 
       const { data, error } = await supabase
@@ -173,9 +180,14 @@ export class AuthController {
     }
   }
 
-  async getChildProfiles(req: Request, res: Response): Promise<void> {
+  async getChildProfiles(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      const parentId = req.headers.authorization?.replace('Bearer ', '');
+      const parentId = req.user?.id;
+      
+      if (!parentId) {
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
+      }
 
       const { data, error } = await supabase
         .from('child_profiles')
@@ -193,10 +205,16 @@ export class AuthController {
     }
   }
 
-  async updateChildProfile(req: Request, res: Response): Promise<void> {
+  async updateChildProfile(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      const parentId = req.headers.authorization?.replace('Bearer ', '');
+      const parentId = req.user?.id;
+      
+      if (!parentId) {
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
+      }
+      
       const updateData = req.body;
 
       const { data, error } = await supabase
@@ -218,10 +236,15 @@ export class AuthController {
     }
   }
 
-  async deleteChildProfile(req: Request, res: Response): Promise<void> {
+  async deleteChildProfile(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      const parentId = req.headers.authorization?.replace('Bearer ', '');
+      const parentId = req.user?.id;
+      
+      if (!parentId) {
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
+      }
 
       const { error } = await supabase
         .from('child_profiles')

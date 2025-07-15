@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import { AuthProvider } from '../contexts/AuthContext'
 
 export const metadata: Metadata = {
   title: 'Peanut Reading - AI-Powered Reading Companion for Kids',
@@ -30,9 +31,11 @@ export default function RootLayout({
             `,
           }}
         />
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
-          {children}
-        </div>
+        <AuthProvider>
+          <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
+            {children}
+          </div>
+        </AuthProvider>
       </body>
     </html>
   )

@@ -2,13 +2,14 @@ import OpenAI from 'openai';
 import { createError } from '../middleware/errorHandler';
 
 export class WhisperService {
-  private openai: OpenAI;
+  private openai?: OpenAI;
 
   constructor() {
     const apiKey = process.env.OPENAI_API_KEY;
     
     if (!apiKey) {
-      throw new Error('OpenAI API key not configured');
+      console.warn('OpenAI API key not configured - WhisperService will be disabled');
+      return;
     }
 
     this.openai = new OpenAI({
@@ -22,6 +23,10 @@ export class WhisperService {
     temperature?: number;
     response_format?: 'json' | 'text' | 'srt' | 'verbose_json' | 'vtt';
   } = {}) {
+    if (!this.openai) {
+      throw createError('WhisperService not initialized - missing OpenAI API key', 503);
+    }
+    
     try {
       const {
         language = 'en',

@@ -9,14 +9,18 @@ const nextConfig = {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
   },
   async rewrites() {
+    const apiBaseUrl = process.env.NODE_ENV === 'development' 
+      ? 'http://localhost:3001'
+      : 'https://peanut-reading-app.onrender.com';
+    
     return [
       {
         source: '/api/health',
-        destination: 'https://peanut-reading-app.onrender.com/health'
+        destination: `${apiBaseUrl}/health`
       },
       {
         source: '/api/:path*',
-        destination: 'https://peanut-reading-app.onrender.com/api/:path*'
+        destination: `${apiBaseUrl}/api/:path*`
       }
     ]
   }

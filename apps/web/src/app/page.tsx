@@ -1,15 +1,30 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { BookOpen, Mic, Sparkles, Trophy, Play, Heart } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { BookOpen, Mic, Sparkles, Trophy, Play, Heart, LogIn } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function HomePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  // Redirect authenticated users to dashboard
+  useEffect(() => {
+    if (!loading && user) {
+      router.push('/dashboard');
+    }
+  }, [user, loading, router]);
 
   const handleStartReading = () => {
-    // Navigate to word families selection page
-    window.location.href = '/word-families';
+    // Redirect to auth if not logged in, otherwise go to child selection
+    if (user) {
+      router.push('/select-child');
+    } else {
+      router.push('/auth');
+    }
   };
 
   const handleGenerateStory = async () => {
@@ -128,10 +143,42 @@ export default function HomePage() {
     }
   ];
 
+  // Show loading while checking auth
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Hero Section */}
-      <div className="text-center mb-16">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
+      {/* Header */}
+      <header className="container mx-auto px-4 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <BookOpen className="w-8 h-8 text-blue-600" />
+            <h1 className="text-2xl font-bold text-gray-900">Peanut Reading</h1>
+          </div>
+          {!user && (
+            <button
+              onClick={() => router.push('/auth')}
+              className="btn-secondary flex items-center gap-2"
+            >
+              <LogIn className="w-5 h-5" />
+              Sign In
+            </button>
+          )}
+        </div>
+      </header>
+
+      <div className="container mx-auto px-4 py-8">
+        {/* Hero Section */}
+        <div className="text-center mb-16">
         <div className="mb-8">
           <h1 className="text-5xl font-bold text-gray-900 mb-4">
             Welcome to <span className="text-blue-600">Peanut Reading</span> 📚
@@ -230,6 +277,7 @@ export default function HomePage() {
         <button className="bg-white text-blue-600 hover:bg-gray-100 font-semibold py-3 px-6 rounded-lg transition-colors duration-200">
           Get Started Free
         </button>
+      </div>
       </div>
     </div>
   );
