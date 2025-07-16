@@ -1,5 +1,21 @@
 import { Request, Response, NextFunction } from 'express';
-import { supabase } from '../config/supabase';
+import { createClient } from '@supabase/supabase-js';
+import dotenv from 'dotenv';
+
+// Load environment variables if not already loaded
+if (!process.env.SUPABASE_URL) {
+  dotenv.config();
+}
+
+// Create a client specifically for JWT validation using anon key
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing Supabase environment variables for auth');
+}
+
+const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey);
 
 export interface AuthenticatedRequest extends Request {
   user?: {
@@ -22,8 +38,8 @@ export const authenticateToken = async (
       return;
     }
 
-    // Verify the JWT token with Supabase
-    const { data: { user }, error } = await supabase.auth.getUser(token);
+    // Verify the JWT token with Supabase using anon key
+    const { data: { user }, error } = await supabaseAuth.auth.getUser(token);
 
     if (error || !user) {
       res.status(401).json({ error: 'Invalid or expired token' });

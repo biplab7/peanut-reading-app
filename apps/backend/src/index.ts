@@ -79,6 +79,30 @@ app.get('/api/debug/methods', (req, res) => {
   }
 });
 
+// Auth debug endpoint
+app.get('/api/debug/auth', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(' ')[1];
+    
+    res.json({
+      hasAuthHeader: !!authHeader,
+      authHeaderFormat: authHeader ? authHeader.substring(0, 20) + '...' : null,
+      hasToken: !!token,
+      tokenLength: token ? token.length : 0,
+      environment: process.env.NODE_ENV,
+      supabaseUrl: process.env.SUPABASE_URL ? process.env.SUPABASE_URL.substring(0, 30) + '...' : 'NOT_SET',
+      hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: error instanceof Error ? error.message : String(error),
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/speech', speechRoutes);
