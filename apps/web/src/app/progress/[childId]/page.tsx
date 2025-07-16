@@ -43,7 +43,7 @@ export default function ProgressPage() {
 function ProgressContent() {
   const router = useRouter();
   const params = useParams();
-  const childId = params.childId as string;
+  const childId = params?.childId as string;
   const [child, setChild] = useState<ChildProfile | null>(null);
   const [sessions, setSessions] = useState<ReadingSession[]>([]);
   const [isLoading, setIsLoading] = useState(true);

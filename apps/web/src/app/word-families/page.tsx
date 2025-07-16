@@ -110,7 +110,13 @@ export default function WordFamiliesPage() {
     const useGeminiStories = localStorage.getItem('peanut_use_gemini_stories');
     const shouldUseGemini = useGeminiStories === null || JSON.parse(useGeminiStories);
     
-    console.log('⚙️ Settings check:', { shouldUseGemini, rawValue: useGeminiStories });
+    console.log('⚙️ Settings check:', { 
+      shouldUseGemini, 
+      rawValue: useGeminiStories,
+      parsedValue: useGeminiStories ? JSON.parse(useGeminiStories) : null,
+      isNull: useGeminiStories === null,
+      localStorage: localStorage.getItem('peanut_use_gemini_stories')
+    });
 
     if (!shouldUseGemini) {
       console.log('🎭 Using hardcoded demo story due to settings');
