@@ -129,8 +129,11 @@ function ReadingPageContent() {
           console.log('📊 Story fetch response status:', response.status, response.statusText);
           
           if (response.ok) {
-            const storyData = await response.json();
-            console.log('✅ Story fetched successfully:', storyData);
+            const apiResponse = await response.json();
+            console.log('✅ Story fetched successfully:', apiResponse);
+            
+            // Extract story data from API response (handle both wrapped and direct responses)
+            const storyData = apiResponse.data || apiResponse;
             
             // Transform API response to match expected structure
             const transformedStory = {
