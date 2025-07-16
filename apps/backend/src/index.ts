@@ -109,7 +109,7 @@ app.get('/api/debug/gemini', async (req, res) => {
   try {
     const { GeminiService } = require('./services/geminiService');
     
-    const debugInfo = {
+    const debugInfo: any = {
       hasGoogleAiApiKey: !!process.env.GOOGLE_AI_API_KEY,
       googleAiApiKeyFormat: process.env.GOOGLE_AI_API_KEY ? 
         process.env.GOOGLE_AI_API_KEY.substring(0, 10) + '...' : 'NOT_SET',
