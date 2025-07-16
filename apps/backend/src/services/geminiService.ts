@@ -446,24 +446,24 @@ Respond with JSON:
     try {
       const { wordFamily, examples, difficulty, theme } = options;
       
-      const prompt = `Create a short, engaging story for children that focuses on the word family "-${wordFamily}". 
+      const prompt = `Create a short, engaging story for children that focuses ONLY on the word family "-${wordFamily}" and basic sight words.
 
 Requirements:
-- Use these specific words: ${examples.join(', ')}
-- Difficulty level: ${difficulty}
-- Theme: ${theme}
-- Story should be 3-5 sentences long
-- Use simple, clear language appropriate for beginning readers
-- Make sure to use ALL the provided words naturally in the story
-- Create a fun, positive story that children will enjoy reading aloud
+- Difficulty level: ${difficulty} (preschool/kindergarten reading level).
+- Theme: ${theme} (keep it very simple, like moving from one spot to another).
+- Story should be 3-5 sentences long.
+- ALL words used in the story MUST belong to the "-${wordFamily}" word family (like: ${examples.join(', ')}) OR be from THIS EXACT, LIMITED LIST of common sight words: a, and, the, is, on, in, it, he, we, to, see, I, had, did, not, play, said.
+- ABSOLUTELY NO OTHER WORDS ARE ALLOWED. Do not use words like 'little', 'big', 'jump', 'run', 'park', 'from', 'where', 'went', 'saw', 'there', 'what', 'who', 'how', 'why', 'his', 'her', 'for', 'was', 'has', 'put', 'like', 'look', 'make', 'find', 'with', 'they', 'you', 'go', 'no', 'this', 'that', 'then', 'when', 'them', 'out', 'up', 'down', 'away'.
+- Make sure to use at least three different "-${wordFamily}" family words naturally in the story.
+- Create a fun, positive story that children will enjoy reading aloud.
 
 Word family: -${wordFamily}
-Target words to include: ${examples.join(', ')}
+Available word family examples: ${examples.join(', ')}
 
 Format the response as JSON:
 {
   "title": "Story Title",
-  "content": "Story text that naturally includes all the target words..."
+  "content": "Story text that naturally includes the target words..."
 }`;
 
       const result = await this.model.generateContent(prompt);
