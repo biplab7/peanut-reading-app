@@ -65,8 +65,11 @@ function DashboardContent() {
     setShowAddChild(false);
   };
 
-  const handleStartReading = () => {
-    window.location.href = '/select-child';
+  const handleStartReading = (child: ChildProfile) => {
+    // Store selected child in session storage for reading session
+    sessionStorage.setItem('selected_child', JSON.stringify(child));
+    // Navigate directly to word families
+    router.push('/word-families');
   };
 
   const handleViewProgress = (childId: string) => {
@@ -236,7 +239,7 @@ function DashboardContent() {
                       View Progress
                     </button>
                     <button 
-                      onClick={handleStartReading}
+                      onClick={() => handleStartReading(child)}
                       className="btn-primary text-sm flex-1"
                     >
                       Start Reading
