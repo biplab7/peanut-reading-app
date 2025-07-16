@@ -131,13 +131,23 @@ function ReadingPageContent() {
           if (response.ok) {
             const storyData = await response.json();
             console.log('✅ Story fetched successfully:', storyData);
-            setStory(storyData);
-            setWordProgress(storyData.targetWords?.map((word: string) => ({
+            
+            // Transform API response to match expected structure
+            const transformedStory = {
+              id: storyData.id,
+              title: storyData.title,
+              content: storyData.content,
+              wordFamily: storyData.metadata?.wordFamily || wordFamily,
+              targetWords: storyData.metadata?.targetWords || storyData.targetWords || []
+            };
+            
+            setStory(transformedStory);
+            setWordProgress(transformedStory.targetWords.map((word: string) => ({
               word,
               attempts: 0,
               correct: false,
               feedback: ''
-            })) || []);
+            })));
           } else {
             console.warn('⚠️ Failed to fetch story, using demo instead');
             const sampleStory = generateDemoStory(wordFamily || 'at');
