@@ -70,7 +70,7 @@ export default function ChildSelector({ onBack, mode: initialMode, selectedChild
       setPinError('');
     } else {
       // Direct access
-      router.push('/reading?childId=' + child.id);
+      router.push('/word-families');
     }
   };
 
@@ -81,8 +81,8 @@ export default function ChildSelector({ onBack, mode: initialMode, selectedChild
     if (!selectedChild) return;
 
     if (pin === selectedChild.preferences.pin) {
-      // PIN correct, proceed to reading
-      router.push('/reading?childId=' + selectedChild.id);
+      // PIN correct, proceed to word families
+      router.push('/word-families');
     } else {
       setPinError('Incorrect PIN. Please try again.');
       setPin('');
