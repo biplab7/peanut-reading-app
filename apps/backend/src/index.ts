@@ -93,8 +93,52 @@ app.get('/api/debug/auth', async (req, res) => {
       environment: process.env.NODE_ENV,
       supabaseUrl: process.env.SUPABASE_URL ? process.env.SUPABASE_URL.substring(0, 30) + '...' : 'NOT_SET',
       hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+      hasAnonKey: !!process.env.SUPABASE_ANON_KEY,
       timestamp: new Date().toISOString()
     });
+  } catch (error) {
+    res.status(500).json({
+      error: error instanceof Error ? error.message : String(error),
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Gemini debug endpoint
+app.get('/api/debug/gemini', async (req, res) => {
+  try {
+    const { GeminiService } = require('./services/geminiService');
+    
+    const debugInfo = {
+      hasGoogleAiApiKey: !!process.env.GOOGLE_AI_API_KEY,
+      googleAiApiKeyFormat: process.env.GOOGLE_AI_API_KEY ? 
+        process.env.GOOGLE_AI_API_KEY.substring(0, 10) + '...' : 'NOT_SET',
+      environment: process.env.NODE_ENV,
+      timestamp: new Date().toISOString()
+    };
+
+    try {
+      const geminiService = new GeminiService();
+      debugInfo.geminiServiceInitialized = true;
+      
+      // Test word family story generation
+      const testResult = await geminiService.generateWordFamilyStory({
+        wordFamily: 'at',
+        examples: ['cat', 'hat', 'bat'],
+        difficulty: 'beginner',
+        theme: 'adventure'
+      });
+      
+      debugInfo.testGenerationSuccessful = true;
+      debugInfo.testStoryTitle = testResult.title;
+      debugInfo.testStoryLength = testResult.content.length;
+      
+    } catch (geminiError) {
+      debugInfo.geminiServiceInitialized = false;
+      debugInfo.geminiError = geminiError instanceof Error ? geminiError.message : String(geminiError);
+    }
+
+    res.json(debugInfo);
   } catch (error) {
     res.status(500).json({
       error: error instanceof Error ? error.message : String(error),
