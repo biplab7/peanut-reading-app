@@ -105,6 +105,19 @@ export default function WordFamiliesPage() {
 
   const handleFamilySelect = async (family: WordFamily) => {
     console.log('🎯 Starting story generation for word family:', family.family);
+    
+    // Check settings to determine if we should use hardcoded stories
+    const useGeminiStories = localStorage.getItem('peanut_use_gemini_stories');
+    const shouldUseGemini = useGeminiStories === null || JSON.parse(useGeminiStories);
+    
+    console.log('⚙️ Settings check:', { shouldUseGemini, rawValue: useGeminiStories });
+
+    if (!shouldUseGemini) {
+      console.log('🎭 Using hardcoded demo story due to settings');
+      router.push(`/reading?storyId=demo&wordFamily=${family.family}`);
+      return;
+    }
+    
     console.log('📝 Request data:', {
       wordFamily: family.family,
       examples: family.examples,

@@ -2,14 +2,42 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { BookOpen, Mic, Sparkles, Trophy, Play, Heart, LogIn } from 'lucide-react';
+import { BookOpen, Mic, Sparkles, Trophy, Play, Heart, LogIn, Settings, ToggleLeft, ToggleRight } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function HomePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  
+  // Settings state
+  const [useGeminiStories, setUseGeminiStories] = useState(true);
+  const [useOpenAIWhisper, setUseOpenAIWhisper] = useState(false);
+  
   const { user, loading } = useAuth();
   const router = useRouter();
+
+  // Load settings from localStorage on mount
+  useEffect(() => {
+    const savedGeminiStories = localStorage.getItem('peanut_use_gemini_stories');
+    const savedOpenAIWhisper = localStorage.getItem('peanut_use_openai_whisper');
+    
+    if (savedGeminiStories !== null) {
+      setUseGeminiStories(JSON.parse(savedGeminiStories));
+    }
+    if (savedOpenAIWhisper !== null) {
+      setUseOpenAIWhisper(JSON.parse(savedOpenAIWhisper));
+    }
+  }, []);
+
+  // Save settings to localStorage when they change
+  useEffect(() => {
+    localStorage.setItem('peanut_use_gemini_stories', JSON.stringify(useGeminiStories));
+  }, [useGeminiStories]);
+
+  useEffect(() => {
+    localStorage.setItem('peanut_use_openai_whisper', JSON.stringify(useOpenAIWhisper));
+  }, [useOpenAIWhisper]);
 
   // Redirect authenticated users to dashboard
   useEffect(() => {
@@ -164,19 +192,112 @@ export default function HomePage() {
             <BookOpen className="w-8 h-8 text-blue-600" />
             <h1 className="text-2xl font-bold text-gray-900">Peanut Reading</h1>
           </div>
-          {!user && (
+          <div className="flex items-center gap-3">
             <button
-              onClick={() => router.push('/auth')}
+              onClick={() => setShowSettings(!showSettings)}
               className="btn-secondary flex items-center gap-2"
             >
-              <LogIn className="w-5 h-5" />
-              Sign In
+              <Settings className="w-5 h-5" />
+              Settings
             </button>
-          )}
+            {!user && (
+              <button
+                onClick={() => router.push('/auth')}
+                className="btn-secondary flex items-center gap-2"
+              >
+                <LogIn className="w-5 h-5" />
+                Sign In
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
       <div className="container mx-auto px-4 py-8">
+        {/* Temporary Settings Panel */}
+        {showSettings && (
+          <div className="card mb-8 border-l-4 border-blue-500">
+            <div className="flex items-center gap-2 mb-4">
+              <Settings className="w-6 h-6 text-blue-600" />
+              <h2 className="text-xl font-bold text-gray-900">Temporary Development Settings</h2>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              These settings are for testing purposes and will be removed in production.
+            </p>
+            
+            <div className="space-y-4">
+              {/* Story Generation Setting */}
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div>
+                  <h3 className="font-semibold text-gray-900">Story Generation</h3>
+                  <p className="text-sm text-gray-600">
+                    Choose between AI-generated stories or hardcoded demo stories
+                  </p>
+                </div>
+                <button
+                  onClick={() => setUseGeminiStories(!useGeminiStories)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                    useGeminiStories 
+                      ? 'bg-green-100 text-green-800 border border-green-200' 
+                      : 'bg-red-100 text-red-800 border border-red-200'
+                  }`}
+                >
+                  {useGeminiStories ? (
+                    <>
+                      <ToggleRight className="w-5 h-5" />
+                      Gemini AI Stories
+                    </>
+                  ) : (
+                    <>
+                      <ToggleLeft className="w-5 h-5" />
+                      Hardcoded Demo Stories
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Voice Recognition Setting */}
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div>
+                  <h3 className="font-semibold text-gray-900">Voice Recognition</h3>
+                  <p className="text-sm text-gray-600">
+                    Choose between Gemini or OpenAI Whisper for speech recognition
+                  </p>
+                </div>
+                <button
+                  onClick={() => setUseOpenAIWhisper(!useOpenAIWhisper)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                    useOpenAIWhisper 
+                      ? 'bg-purple-100 text-purple-800 border border-purple-200' 
+                      : 'bg-blue-100 text-blue-800 border border-blue-200'
+                  }`}
+                >
+                  {useOpenAIWhisper ? (
+                    <>
+                      <ToggleRight className="w-5 h-5" />
+                      OpenAI Whisper
+                    </>
+                  ) : (
+                    <>
+                      <ToggleLeft className="w-5 h-5" />
+                      Google Speech (Gemini)
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Current Status */}
+              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <h4 className="font-medium text-blue-900 mb-2">Current Configuration:</h4>
+                <ul className="text-sm text-blue-800 space-y-1">
+                  <li>• Stories: {useGeminiStories ? 'AI-Generated (Gemini)' : 'Hardcoded Demo'}</li>
+                  <li>• Voice: {useOpenAIWhisper ? 'OpenAI Whisper' : 'Google Speech'}</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Hero Section */}
         <div className="text-center mb-16">
         <div className="mb-8">
