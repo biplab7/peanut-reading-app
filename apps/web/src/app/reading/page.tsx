@@ -184,7 +184,21 @@ function ReadingPageContent() {
 
   // Initialize speech recognition
   useEffect(() => {
+    // Check which speech service should be used
+    const useOpenAIWhisper = localStorage.getItem('peanut_use_openai_whisper');
+    const shouldUseWhisper = useOpenAIWhisper && JSON.parse(useOpenAIWhisper);
+    
+    console.log('🎤 Speech Recognition Debug Info:');
+    console.log('📋 Speech service setting:', {
+      rawValue: useOpenAIWhisper,
+      shouldUseWhisper: shouldUseWhisper,
+      serviceToUse: shouldUseWhisper ? 'OpenAI Whisper (Backend)' : 'Google Speech (Backend)'
+    });
+    console.log('⚠️ CURRENT IMPLEMENTATION: Using Browser Web Speech API (webkitSpeechRecognition)');
+    console.log('🔧 TO USE BACKEND SERVICES: Need to implement audio recording + API calls to /api/speech/recognize');
+    
     if (typeof window !== 'undefined' && 'webkitSpeechRecognition' in window) {
+      console.log('🌐 Initializing Browser Speech Recognition (NOT backend services)');
       const SpeechRecognition = (window as any).webkitSpeechRecognition;
       const recognition = new SpeechRecognition();
       
@@ -204,6 +218,13 @@ function ReadingPageContent() {
             interimTranscript += transcript;
           }
         }
+
+        console.log('🎯 Speech Recognition Result:', {
+          source: 'Browser Web Speech API',
+          finalTranscript: finalTranscript,
+          interimTranscript: interimTranscript,
+          confidence: event.results[0]?.[0]?.confidence || 'unknown'
+        });
 
         setRecognizedText(finalTranscript || interimTranscript);
         
@@ -253,12 +274,18 @@ function ReadingPageContent() {
   };
 
   const startRecording = () => {
+    console.log('🎙️ Starting recording...');
+    console.log('🔍 Speech Recognition Method: Browser Web Speech API (webkitSpeechRecognition)');
+    console.log('⚠️ NOT USING: Backend Google Speech API or OpenAI Whisper API');
+    
     if (speechRecognitionRef.current) {
       setIsRecording(true);
       setRecognizedText('');
       setFeedback('Listening... Start reading!');
       speechRecognitionRef.current.start();
+      console.log('✅ Browser speech recognition started');
     } else {
+      console.error('❌ Speech recognition not supported in this browser');
       setFeedback('Speech recognition not supported in this browser.');
     }
   };
