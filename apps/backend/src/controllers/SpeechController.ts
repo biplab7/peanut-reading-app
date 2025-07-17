@@ -69,17 +69,38 @@ export class SpeechController {
           throw createError('Google Speech service not initialized. Check Google Cloud credentials configuration.', 503);
         }
         
-        if (expectedText) {
-          console.log('🎯 Running pronunciation analysis...');
-          result = await this.googleSpeech.analyzePronunciation(audioBuffer, expectedText, {
-            languageCode: req.body.language || 'en-US',
-          });
-        } else {
-          console.log('🎯 Running speech recognition...');
-          result = await this.googleSpeech.recognizeSpeech(audioBuffer, {
-            languageCode: req.body.language || 'en-US',
-            sampleRateHertz: parseInt(req.body.sampleRate) || 16000,
-          });
+        try {
+          if (expectedText) {
+            console.log('🎯 Running pronunciation analysis...');
+            result = await this.googleSpeech.analyzePronunciation(audioBuffer, expectedText, {
+              languageCode: req.body.language || 'en-US',
+            });
+          } else {
+            console.log('🎯 Running speech recognition...');
+            result = await this.googleSpeech.recognizeSpeech(audioBuffer, {
+              languageCode: req.body.language || 'en-US',
+              sampleRateHertz: parseInt(req.body.sampleRate) || 16000,
+            });
+          }
+        } catch (speechError: any) {
+          console.warn('⚠️ Pronunciation analysis failed, trying simple recognition:', speechError.message);
+          if (expectedText && speechError.message.includes('too long')) {
+            // Fallback to simple recognition if pronunciation analysis fails
+            console.log('🔄 Falling back to simple speech recognition');
+            const simpleResult = await this.googleSpeech.recognizeSpeech(audioBuffer, {
+              languageCode: req.body.language || 'en-US',
+              sampleRateHertz: parseInt(req.body.sampleRate) || 16000,
+            });
+            
+            // Transform simple result to match expected format
+            result = {
+              transcript: simpleResult.transcript,
+              confidence: simpleResult.confidence,
+              feedback: 'Speech recognized successfully (fallback mode)'
+            };
+          } else {
+            throw speechError;
+          }
         }
         console.log('✅ Google Speech processing completed:', { 
           hasResult: !!result,

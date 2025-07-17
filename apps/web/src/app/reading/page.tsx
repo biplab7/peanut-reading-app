@@ -310,7 +310,29 @@ function ReadingPageContent() {
       try {
         console.log(`🚀 Starting backend speech recording with ${speechService} service`);
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const mediaRecorder = new MediaRecorder(stream);
+        
+        // Try different audio formats that Google Speech API supports better
+        let mediaRecorder;
+        const audioFormats = [
+          'audio/wav',
+          'audio/mp4',
+          'audio/webm;codecs=pcm',
+          'audio/webm'  // fallback
+        ];
+        
+        let selectedFormat = 'audio/webm'; // default fallback
+        for (const format of audioFormats) {
+          if (MediaRecorder.isTypeSupported(format)) {
+            selectedFormat = format;
+            console.log(`✅ Using audio format: ${format}`);
+            break;
+          }
+        }
+        
+        mediaRecorder = new MediaRecorder(stream, { 
+          mimeType: selectedFormat,
+          audioBitsPerSecond: 16000 // Lower bitrate for smaller files
+        });
         
         audioChunksRef.current = [];
         mediaRecorderRef.current = mediaRecorder;

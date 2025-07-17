@@ -73,17 +73,35 @@ export class GoogleSpeechService {
         enableAutomaticPunctuation = true,
       } = options;
 
+      // Detect audio format and set appropriate encoding
+      let encoding: 'WEBM_OPUS' | 'LINEAR16' | 'MP3' = 'WEBM_OPUS';
+      console.log('🎵 Audio buffer info:', {
+        size: audioBuffer.length,
+        firstBytes: Array.from(audioBuffer.slice(0, 8)).map(b => b.toString(16).padStart(2, '0')).join(' ')
+      });
+      
+      // Check file header to determine format
+      if (audioBuffer.slice(0, 4).toString() === 'RIFF') {
+        encoding = 'LINEAR16';
+        console.log('🔄 Detected WAV format, using LINEAR16 encoding');
+      } else if (audioBuffer.slice(4, 8).toString() === 'ftyp') {
+        encoding = 'MP3'; // Use MP3 encoding for MP4 containers
+        console.log('🔄 Detected MP4 format, using MP3 encoding');
+      } else {
+        console.log('🔄 Using default WEBM_OPUS encoding');
+      }
+
       const request = {
         audio: {
           content: audioBuffer.toString('base64'),
         },
         config: {
-          encoding: 'WEBM_OPUS' as const,
+          encoding,
           sampleRateHertz,
           languageCode,
           enableWordTimeOffsets,
           enableAutomaticPunctuation,
-          model: 'latest_long', // Better for children's speech
+          model: 'latest_short', // Changed from latest_long for shorter audio
           useEnhanced: true,
           // Child-friendly speech recognition settings
           speechContexts: [{
@@ -109,7 +127,7 @@ export class GoogleSpeechService {
       }
 
       // Extract word timings if available
-      const wordTimings = alternative.words?.map(word => ({
+      const wordTimings = alternative.words?.map((word: any) => ({
         word: word.word || '',
         startTime: word.startTime?.seconds ? 
           parseInt(word.startTime.seconds.toString()) + (word.startTime.nanos || 0) / 1e9 : 0,
@@ -121,7 +139,7 @@ export class GoogleSpeechService {
       return {
         transcript: alternative.transcript || '',
         confidence: alternative.confidence || 0,
-        alternatives: result.alternatives?.slice(1).map(alt => ({
+        alternatives: result.alternatives?.slice(1).map((alt: any) => ({
           transcript: alt.transcript || '',
           confidence: alt.confidence || 0,
         })) || [],
