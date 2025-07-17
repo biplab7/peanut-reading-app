@@ -431,20 +431,25 @@ function ReadingPageContent() {
       
       if (response.ok) {
         const result = await response.json();
+        console.log('🎯 Raw API Response:', result);
+        
+        // Extract data from the API response structure
+        const speechData = result.data || result;
         console.log('🎯 Speech Recognition Result:', {
           source: `${service} API`,
-          transcript: result.transcript,
-          confidence: result.confidence,
-          feedback: result.feedback
+          transcript: speechData.transcript,
+          confidence: speechData.confidence,
+          feedback: speechData.feedback || speechData.suggestions?.[0],
+          fullResult: result
         });
         
-        setRecognizedText(result.transcript || '');
+        setRecognizedText(speechData.transcript || '');
         setIsRecording(false);
         
-        if (result.transcript && story) {
-          processRecognizedText(result.transcript.toLowerCase().trim());
+        if (speechData.transcript && story) {
+          processRecognizedText(speechData.transcript.toLowerCase().trim());
         } else {
-          setFeedback(result.feedback || 'No speech detected. Please try again.');
+          setFeedback(speechData.feedback || speechData.suggestions?.[0] || 'No speech detected. Please try again.');
         }
       } else {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));

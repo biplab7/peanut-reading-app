@@ -72,9 +72,18 @@ export class SpeechController {
         try {
           if (expectedText) {
             console.log('🎯 Running pronunciation analysis...');
-            result = await this.googleSpeech.analyzePronunciation(audioBuffer, expectedText, {
+            const pronunciationResult = await this.googleSpeech.analyzePronunciation(audioBuffer, expectedText, {
               languageCode: req.body.language || 'en-US',
             });
+            
+            // Transform pronunciation analysis result to match expected frontend format
+            result = {
+              transcript: pronunciationResult.recognitionResult.transcript,
+              confidence: pronunciationResult.recognitionResult.confidence,
+              feedback: pronunciationResult.suggestions[0] || 'Analysis completed',
+              accuracy: pronunciationResult.overallAccuracy,
+              wordAccuracy: pronunciationResult.wordAccuracy
+            };
           } else {
             console.log('🎯 Running speech recognition...');
             result = await this.googleSpeech.recognizeSpeech(audioBuffer, {
@@ -107,6 +116,15 @@ export class SpeechController {
           resultType: expectedText ? 'pronunciation_analysis' : 'speech_recognition'
         });
       }
+
+      console.log('🎯 Final response structure:', {
+        success: true,
+        hasData: !!result,
+        dataStructure: result ? Object.keys(result) : [],
+        transcript: result?.transcript,
+        confidence: result?.confidence,
+        feedback: result?.feedback
+      });
 
       res.json({
         success: true,
