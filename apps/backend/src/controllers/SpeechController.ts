@@ -121,9 +121,9 @@ export class SpeechController {
         success: true,
         hasData: !!result,
         dataStructure: result ? Object.keys(result) : [],
-        transcript: result?.transcript,
-        confidence: result?.confidence,
-        feedback: result?.feedback
+        transcript: (result as any)?.transcript,
+        confidence: (result as any)?.confidence,
+        feedback: (result as any)?.feedback
       });
 
       res.json({
