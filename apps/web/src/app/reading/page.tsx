@@ -99,10 +99,15 @@ function ReadingPageContent() {
   const [wordProgress, setWordProgress] = useState<WordProgress[]>([]);
   const [feedback, setFeedback] = useState<string>('');
   const [recognizedText, setRecognizedText] = useState<string>('');
+  const [recordingDuration, setRecordingDuration] = useState(0);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const speechRecognitionRef = useRef<any>(null);
+  const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Constants
+  const MAX_RECORDING_DURATION = 45; // seconds (Google API limit is 60s)
 
   // Load story data
   useEffect(() => {
@@ -252,6 +257,9 @@ function ReadingPageContent() {
       if (speechRecognitionRef.current) {
         speechRecognitionRef.current.stop();
       }
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+      }
     };
   }, [story]);
 
@@ -320,8 +328,22 @@ function ReadingPageContent() {
         mediaRecorder.start();
         setIsRecording(true);
         setRecognizedText('');
+        setRecordingDuration(0);
         setFeedback('Recording... Start reading!');
         console.log(`✅ Backend audio recording started for ${speechService}`);
+        
+        // Start timer for recording duration
+        recordingTimerRef.current = setInterval(() => {
+          setRecordingDuration(prev => {
+            const newDuration = prev + 1;
+            if (newDuration >= MAX_RECORDING_DURATION) {
+              console.log(`⏰ Recording time limit reached (${MAX_RECORDING_DURATION}s), stopping automatically`);
+              stopRecording();
+              return MAX_RECORDING_DURATION;
+            }
+            return newDuration;
+          });
+        }, 1000);
       } catch (error) {
         console.error('❌ Failed to start audio recording:', error);
         setFeedback('Failed to access microphone. Please check permissions.');
@@ -332,6 +354,12 @@ function ReadingPageContent() {
   const stopRecording = () => {
     const speechService = localStorage.getItem('peanut_speech_service') || 'browser';
     console.log('🛑 Stopping recording...');
+    
+    // Clear the recording timer
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
     
     if (speechService === 'browser') {
       if (speechRecognitionRef.current) {
@@ -344,9 +372,10 @@ function ReadingPageContent() {
       if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
         setFeedback('Processing audio... Please wait!');
         mediaRecorderRef.current.stop();
-        console.log(`✅ Backend audio recording stopped for ${speechService}`);
+        console.log(`✅ Backend audio recording stopped for ${speechService} (duration: ${recordingDuration}s)`);
         // mediaRecorder.onstop will trigger processBackendSpeechRecognition
       }
+      setIsRecording(false);
     }
   };
 
@@ -559,7 +588,13 @@ function ReadingPageContent() {
           disabled={isPlaying}
         >
           {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-          {isRecording ? 'Stop Recording' : 'Start Reading'}
+          {isRecording ? (
+            <span>
+              Stop Recording ({recordingDuration}s / {MAX_RECORDING_DURATION}s)
+            </span>
+          ) : (
+            'Start Reading'
+          )}
         </button>
 
         <button
