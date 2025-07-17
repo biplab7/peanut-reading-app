@@ -56,16 +56,35 @@ export class SpeechController {
         }
       } else {
         // Use Google Speech-to-Text
+        console.log('🔍 Using Google Speech service for:', service);
+        console.log('📋 Request details:', {
+          hasAudioBuffer: !!audioBuffer,
+          audioSize: audioBuffer?.length,
+          expectedText: expectedText,
+          languageCode: req.body.language || 'en-US',
+          hasGoogleSpeechService: !!this.googleSpeech
+        });
+        
+        if (!this.googleSpeech) {
+          throw createError('Google Speech service not initialized. Check Google Cloud credentials configuration.', 503);
+        }
+        
         if (expectedText) {
+          console.log('🎯 Running pronunciation analysis...');
           result = await this.googleSpeech.analyzePronunciation(audioBuffer, expectedText, {
             languageCode: req.body.language || 'en-US',
           });
         } else {
+          console.log('🎯 Running speech recognition...');
           result = await this.googleSpeech.recognizeSpeech(audioBuffer, {
             languageCode: req.body.language || 'en-US',
             sampleRateHertz: parseInt(req.body.sampleRate) || 16000,
           });
         }
+        console.log('✅ Google Speech processing completed:', { 
+          hasResult: !!result,
+          resultType: expectedText ? 'pronunciation_analysis' : 'speech_recognition'
+        });
       }
 
       res.json({
@@ -74,10 +93,26 @@ export class SpeechController {
         service: service,
       });
     } catch (error) {
-      console.error('Speech recognition error:', error);
-      res.status(500).json({
+      console.error('❌ Speech recognition error:', error);
+      console.error('🔍 Error details:', {
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        errorStack: error instanceof Error ? error.stack : undefined,
+        service: req.body.service || 'google',
+        hasGoogleSpeech: !!this.googleSpeech,
+        hasWhisperService: !!this.whisperService
+      });
+      
+      const statusCode = (error as any).statusCode || 500;
+      const errorMessage = error instanceof Error ? error.message : 'Speech recognition failed';
+      
+      res.status(statusCode).json({
         success: false,
-        error: error instanceof Error ? error.message : 'Speech recognition failed',
+        error: errorMessage,
+        debug: {
+          service: req.body.service || 'google',
+          timestamp: new Date().toISOString(),
+          hasRequiredService: req.body.service === 'whisper' ? !!this.whisperService : !!this.googleSpeech
+        }
       });
     }
   }
