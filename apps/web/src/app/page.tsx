@@ -12,7 +12,7 @@ export default function HomePage() {
   
   // Settings state
   const [useGeminiStories, setUseGeminiStories] = useState(true);
-  const [useOpenAIWhisper, setUseOpenAIWhisper] = useState(false);
+  const [speechService, setSpeechService] = useState<'browser' | 'google' | 'whisper'>('browser');
   
   const { user, loading } = useAuth();
   const router = useRouter();
@@ -20,13 +20,13 @@ export default function HomePage() {
   // Load settings from localStorage on mount
   useEffect(() => {
     const savedGeminiStories = localStorage.getItem('peanut_use_gemini_stories');
-    const savedOpenAIWhisper = localStorage.getItem('peanut_use_openai_whisper');
+    const savedSpeechService = localStorage.getItem('peanut_speech_service');
     
     if (savedGeminiStories !== null) {
       setUseGeminiStories(JSON.parse(savedGeminiStories));
     }
-    if (savedOpenAIWhisper !== null) {
-      setUseOpenAIWhisper(JSON.parse(savedOpenAIWhisper));
+    if (savedSpeechService !== null) {
+      setSpeechService(savedSpeechService as 'browser' | 'google' | 'whisper');
     }
   }, []);
 
@@ -36,8 +36,8 @@ export default function HomePage() {
   }, [useGeminiStories]);
 
   useEffect(() => {
-    localStorage.setItem('peanut_use_openai_whisper', JSON.stringify(useOpenAIWhisper));
-  }, [useOpenAIWhisper]);
+    localStorage.setItem('peanut_speech_service', speechService);
+  }, [speechService]);
 
   // Redirect authenticated users to dashboard
   useEffect(() => {
@@ -256,34 +256,41 @@ export default function HomePage() {
                 </button>
               </div>
 
-              {/* Voice Recognition Setting */}
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <div>
-                  <h3 className="font-semibold text-gray-900">Voice Recognition</h3>
+              {/* Speech Recognition Service Setting */}
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <div className="mb-3">
+                  <h3 className="font-semibold text-gray-900">Speech Recognition Service</h3>
                   <p className="text-sm text-gray-600">
-                    Choose between Gemini or OpenAI Whisper for speech recognition
+                    Choose which speech recognition service to use
                   </p>
                 </div>
-                <button
-                  onClick={() => setUseOpenAIWhisper(!useOpenAIWhisper)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
-                    useOpenAIWhisper 
-                      ? 'bg-purple-100 text-purple-800 border border-purple-200' 
-                      : 'bg-blue-100 text-blue-800 border border-blue-200'
-                  }`}
-                >
-                  {useOpenAIWhisper ? (
-                    <>
-                      <ToggleRight className="w-5 h-5" />
-                      OpenAI Whisper
-                    </>
-                  ) : (
-                    <>
-                      <ToggleLeft className="w-5 h-5" />
-                      Google Speech (Gemini)
-                    </>
-                  )}
-                </button>
+                <div className="space-y-2">
+                  {[
+                    { value: 'browser', label: 'Browser/Native (Free)', desc: 'Uses browser built-in speech recognition' },
+                    { value: 'google', label: 'Google Speech API', desc: 'Advanced speech recognition with Google AI' },
+                    { value: 'whisper', label: 'OpenAI Whisper', desc: 'High-accuracy speech recognition by OpenAI' }
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => setSpeechService(option.value as 'browser' | 'google' | 'whisper')}
+                      className={`w-full text-left p-3 rounded-lg border-2 transition-colors ${
+                        speechService === option.value
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-gray-200 bg-white hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="font-medium text-gray-900">{option.label}</div>
+                          <div className="text-sm text-gray-600">{option.desc}</div>
+                        </div>
+                        {speechService === option.value && (
+                          <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Current Status */}
@@ -291,7 +298,7 @@ export default function HomePage() {
                 <h4 className="font-medium text-blue-900 mb-2">Current Configuration:</h4>
                 <ul className="text-sm text-blue-800 space-y-1">
                   <li>• Stories: {useGeminiStories ? 'AI-Generated (Gemini)' : 'Hardcoded Demo'}</li>
-                  <li>• Voice: {useOpenAIWhisper ? 'OpenAI Whisper' : 'Google Speech'}</li>
+                  <li>• Speech: {speechService === 'browser' ? 'Browser/Native' : speechService === 'google' ? 'Google Speech API' : 'OpenAI Whisper'}</li>
                 </ul>
               </div>
             </div>

@@ -184,61 +184,68 @@ function ReadingPageContent() {
 
   // Initialize speech recognition
   useEffect(() => {
-    // Check which speech service should be used
-    const useOpenAIWhisper = localStorage.getItem('peanut_use_openai_whisper');
-    const shouldUseWhisper = useOpenAIWhisper && JSON.parse(useOpenAIWhisper);
+    const speechService = localStorage.getItem('peanut_speech_service') || 'browser';
     
     console.log('🎤 Speech Recognition Debug Info:');
     console.log('📋 Speech service setting:', {
-      rawValue: useOpenAIWhisper,
-      shouldUseWhisper: shouldUseWhisper,
-      serviceToUse: shouldUseWhisper ? 'OpenAI Whisper (Backend)' : 'Google Speech (Backend)'
+      service: speechService,
+      description: speechService === 'browser' ? 'Browser/Native (webkitSpeechRecognition)' : 
+                   speechService === 'google' ? 'Google Speech API (Backend)' : 
+                   'OpenAI Whisper API (Backend)'
     });
-    console.log('⚠️ CURRENT IMPLEMENTATION: Using Browser Web Speech API (webkitSpeechRecognition)');
-    console.log('🔧 TO USE BACKEND SERVICES: Need to implement audio recording + API calls to /api/speech/recognize');
     
-    if (typeof window !== 'undefined' && 'webkitSpeechRecognition' in window) {
-      console.log('🌐 Initializing Browser Speech Recognition (NOT backend services)');
-      const SpeechRecognition = (window as any).webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
-      
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = 'en-US';
-
-      recognition.onresult = (event: any) => {
-        let finalTranscript = '';
-        let interimTranscript = '';
-
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const transcript = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            finalTranscript += transcript;
-          } else {
-            interimTranscript += transcript;
-          }
-        }
-
-        console.log('🎯 Speech Recognition Result:', {
-          source: 'Browser Web Speech API',
-          finalTranscript: finalTranscript,
-          interimTranscript: interimTranscript,
-          confidence: event.results[0]?.[0]?.confidence || 'unknown'
-        });
-
-        setRecognizedText(finalTranscript || interimTranscript);
+    if (speechService === 'browser') {
+      // Initialize browser speech recognition
+      if (typeof window !== 'undefined' && 'webkitSpeechRecognition' in window) {
+        console.log('🌐 Initializing Browser Speech Recognition');
+        const SpeechRecognition = (window as any).webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
         
-        if (finalTranscript && story) {
-          processRecognizedText(finalTranscript.toLowerCase().trim());
-        }
-      };
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'en-US';
 
-      recognition.onerror = (event: any) => {
-        console.error('Speech recognition error:', event.error);
-        setFeedback('Speech recognition error. Please try again.');
-      };
+        recognition.onresult = (event: any) => {
+          let finalTranscript = '';
+          let interimTranscript = '';
 
-      speechRecognitionRef.current = recognition;
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+              finalTranscript += transcript;
+            } else {
+              interimTranscript += transcript;
+            }
+          }
+
+          console.log('🎯 Speech Recognition Result:', {
+            source: 'Browser Web Speech API',
+            finalTranscript: finalTranscript,
+            interimTranscript: interimTranscript,
+            confidence: event.results[0]?.[0]?.confidence || 'unknown'
+          });
+
+          setRecognizedText(finalTranscript || interimTranscript);
+          
+          if (finalTranscript && story) {
+            processRecognizedText(finalTranscript.toLowerCase().trim());
+          }
+        };
+
+        recognition.onerror = (event: any) => {
+          console.error('Speech recognition error:', event.error);
+          setFeedback('Speech recognition error. Please try again.');
+        };
+
+        speechRecognitionRef.current = recognition;
+      } else {
+        console.warn('⚠️ Browser speech recognition not supported');
+      }
+    } else {
+      console.log(`🚀 Backend speech service selected: ${speechService}`);
+      console.log('📝 Note: Backend speech recording requires MediaRecorder API integration');
+      // speechRecognitionRef will be null for backend services
+      // Recording will be handled by MediaRecorder instead
     }
 
     return () => {
@@ -273,28 +280,131 @@ function ReadingPageContent() {
     }
   };
 
-  const startRecording = () => {
+  const startRecording = async () => {
+    const speechService = localStorage.getItem('peanut_speech_service') || 'browser';
     console.log('🎙️ Starting recording...');
-    console.log('🔍 Speech Recognition Method: Browser Web Speech API (webkitSpeechRecognition)');
-    console.log('⚠️ NOT USING: Backend Google Speech API or OpenAI Whisper API');
+    console.log('🔍 Speech Recognition Method:', speechService);
     
-    if (speechRecognitionRef.current) {
-      setIsRecording(true);
-      setRecognizedText('');
-      setFeedback('Listening... Start reading!');
-      speechRecognitionRef.current.start();
-      console.log('✅ Browser speech recognition started');
+    if (speechService === 'browser') {
+      // Use browser speech recognition
+      if (speechRecognitionRef.current) {
+        setIsRecording(true);
+        setRecognizedText('');
+        setFeedback('Listening... Start reading!');
+        speechRecognitionRef.current.start();
+        console.log('✅ Browser speech recognition started');
+      } else {
+        console.error('❌ Speech recognition not supported in this browser');
+        setFeedback('Speech recognition not supported in this browser.');
+      }
     } else {
-      console.error('❌ Speech recognition not supported in this browser');
-      setFeedback('Speech recognition not supported in this browser.');
+      // Use backend API with MediaRecorder
+      try {
+        console.log(`🚀 Starting backend speech recording with ${speechService} service`);
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const mediaRecorder = new MediaRecorder(stream);
+        
+        audioChunksRef.current = [];
+        mediaRecorderRef.current = mediaRecorder;
+        
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            audioChunksRef.current.push(event.data);
+          }
+        };
+        
+        mediaRecorder.onstop = () => {
+          processBackendSpeechRecognition(speechService as 'google' | 'whisper');
+        };
+        
+        mediaRecorder.start();
+        setIsRecording(true);
+        setRecognizedText('');
+        setFeedback('Recording... Start reading!');
+        console.log(`✅ Backend audio recording started for ${speechService}`);
+      } catch (error) {
+        console.error('❌ Failed to start audio recording:', error);
+        setFeedback('Failed to access microphone. Please check permissions.');
+      }
     }
   };
 
   const stopRecording = () => {
-    if (speechRecognitionRef.current) {
+    const speechService = localStorage.getItem('peanut_speech_service') || 'browser';
+    console.log('🛑 Stopping recording...');
+    
+    if (speechService === 'browser') {
+      if (speechRecognitionRef.current) {
+        setIsRecording(false);
+        setFeedback('Processing... Please wait!');
+        speechRecognitionRef.current.stop();
+        console.log('✅ Browser speech recognition stopped');
+      }
+    } else {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+        setFeedback('Processing audio... Please wait!');
+        mediaRecorderRef.current.stop();
+        console.log(`✅ Backend audio recording stopped for ${speechService}`);
+        // mediaRecorder.onstop will trigger processBackendSpeechRecognition
+      }
+    }
+  };
+
+  const processBackendSpeechRecognition = async (service: 'google' | 'whisper') => {
+    try {
+      console.log(`🔄 Processing speech with ${service} API...`);
+      
+      // Create audio blob from recorded chunks
+      const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+      console.log('📦 Audio blob created:', { size: audioBlob.size, type: audioBlob.type });
+      
+      // Create FormData for API call
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'recording.webm');
+      formData.append('service', service);
+      if (story) {
+        formData.append('expectedText', story.targetWords.join(' '));
+      }
+      
+      console.log(`🌐 Making API call to /api/speech/recognize with ${service} service`);
+      const startTime = Date.now();
+      
+      const response = await fetch('/api/speech/recognize', {
+        method: 'POST',
+        body: formData
+      });
+      
+      const endTime = Date.now();
+      console.log(`⏱️ API call completed in ${endTime - startTime}ms`);
+      console.log('📊 Response status:', response.status, response.statusText);
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log('🎯 Speech Recognition Result:', {
+          source: `${service} API`,
+          transcript: result.transcript,
+          confidence: result.confidence,
+          feedback: result.feedback
+        });
+        
+        setRecognizedText(result.transcript || '');
+        setIsRecording(false);
+        
+        if (result.transcript && story) {
+          processRecognizedText(result.transcript.toLowerCase().trim());
+        } else {
+          setFeedback(result.feedback || 'No speech detected. Please try again.');
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error(`❌ ${service} API error:`, errorData);
+        setFeedback(`Speech recognition failed. Please try again.`);
+        setIsRecording(false);
+      }
+    } catch (error) {
+      console.error(`❌ Backend speech processing error:`, error);
+      setFeedback('Speech processing failed. Please try again.');
       setIsRecording(false);
-      setFeedback('Recording stopped. Click the microphone to try again!');
-      speechRecognitionRef.current.stop();
     }
   };
 
