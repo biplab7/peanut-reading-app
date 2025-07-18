@@ -60,32 +60,94 @@ export class WhisperService {
       } = options;
 
       console.log('📁 Creating audio file object...');
+      
+      // Detect audio format and use appropriate filename/type
+      let audioFileName = 'audio.webm';
+      let audioMimeType = 'audio/webm';
+      
+      // Check file header to determine actual format
+      const headerBytes = Array.from(audioBuffer.slice(0, 12)).map(b => b.toString(16).padStart(2, '0')).join(' ');
+      console.log('🔍 Audio header analysis:', { 
+        firstBytes: headerBytes,
+        bufferSize: audioBuffer.length 
+      });
+      
+      if (audioBuffer.slice(0, 4).toString() === 'RIFF') {
+        audioFileName = 'audio.wav';
+        audioMimeType = 'audio/wav';
+        console.log('🎵 Detected WAV format');
+      } else if (audioBuffer.slice(4, 8).toString() === 'ftyp') {
+        audioFileName = 'audio.m4a';
+        audioMimeType = 'audio/mp4';
+        console.log('🎵 Detected MP4/M4A format');
+      } else if (audioBuffer.slice(0, 4).toString('hex') === '1a45dfa3') {
+        audioFileName = 'audio.webm';
+        audioMimeType = 'audio/webm';
+        console.log('🎵 Detected WebM format - may cause connection issues');
+        
+        // For WebM, try using generic audio type which OpenAI handles better
+        audioMimeType = 'audio/ogg';
+        audioFileName = 'audio.ogg';
+        console.log('🔄 Converting WebM to OGG mime type for better compatibility');
+      } else {
+        console.log('🎵 Unknown format, defaulting to WebM');
+      }
+      
       // Create a temporary file-like object for the API
-      const audioFile = new File([audioBuffer], 'audio.webm', {
-        type: 'audio/webm',
+      const audioFile = new File([audioBuffer], audioFileName, {
+        type: audioMimeType,
       });
       console.log('✅ Audio file object created:', { 
         name: audioFile.name, 
         type: audioFile.type, 
-        size: audioFile.size 
+        size: audioFile.size,
+        detectedFormat: audioMimeType
       });
 
       console.log('🌐 Making OpenAI Whisper API call...');
       const requestStart = Date.now();
       
-      const transcription = await this.openai.audio.transcriptions.create({
-        file: audioFile,
-        model: 'whisper-1',
-        language,
-        prompt,
-        temperature,
-        response_format,
-      });
+      // Retry mechanism for connection issues
+      let transcription;
+      let lastError;
+      const maxRetries = 2;
       
-      const requestEnd = Date.now();
-      console.log(`✅ Whisper API call completed in ${requestEnd - requestStart}ms`);
-      console.log('📝 Transcription response type:', typeof transcription);
-      console.log('📝 Transcription response keys:', Object.keys(transcription || {}));
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          console.log(`🔄 Whisper API attempt ${attempt}/${maxRetries}`);
+          
+          transcription = await this.openai.audio.transcriptions.create({
+            file: audioFile,
+            model: 'whisper-1',
+            language,
+            prompt,
+            temperature,
+            response_format,
+          });
+          
+          const requestEnd = Date.now();
+          console.log(`✅ Whisper API call completed in ${requestEnd - requestStart}ms on attempt ${attempt}`);
+          console.log('📝 Transcription response type:', typeof transcription);
+          console.log('📝 Transcription response keys:', Object.keys(transcription || {}));
+          break; // Success, exit retry loop
+          
+        } catch (retryError) {
+          lastError = retryError;
+          console.warn(`⚠️ Whisper API attempt ${attempt} failed:`, (retryError as any)?.message);
+          
+          if (attempt < maxRetries) {
+            const waitTime = Math.pow(2, attempt) * 1000; // Exponential backoff: 2s, 4s
+            console.log(`⏳ Waiting ${waitTime}ms before retry ${attempt + 1}...`);
+            await new Promise(resolve => setTimeout(resolve, waitTime));
+          }
+        }
+      }
+      
+      // If all retries failed, throw the last error
+      if (!transcription) {
+        console.error(`❌ All ${maxRetries} Whisper API attempts failed`);
+        throw lastError;
+      }
 
       // Handle different response formats
       if (response_format === 'verbose_json' && typeof transcription === 'object') {
@@ -131,7 +193,8 @@ export class WhisperService {
       // Check for specific connection issues
       if (error instanceof Error) {
         if (error.message.includes('ECONNRESET')) {
-          console.error('🌐 Connection reset by OpenAI server - possible network/timeout issue');
+          console.error('🌐 Connection reset by OpenAI server - likely audio format compatibility issue');
+          console.error('💡 Suggestion: WebM format may not be fully supported by OpenAI Whisper');
         } else if (error.message.includes('ENOTFOUND')) {
           console.error('🌐 DNS resolution failed - possible network connectivity issue');
         } else if (error.message.includes('timeout')) {
@@ -140,6 +203,10 @@ export class WhisperService {
           console.error('🔑 Authentication failed - check OpenAI API key');
         } else if (error.message.includes('429')) {
           console.error('🚫 Rate limit exceeded - too many requests to OpenAI API');
+        } else if (error.message.includes('413') || error.message.includes('too large')) {
+          console.error('📦 File too large - audio file exceeds OpenAI size limits');
+        } else if (error.message.includes('unsupported') || error.message.includes('format')) {
+          console.error('🎵 Unsupported audio format - try WAV or MP3 instead');
         }
       }
       
