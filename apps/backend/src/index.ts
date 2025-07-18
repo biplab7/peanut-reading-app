@@ -165,7 +165,54 @@ app.use('*', (req, res) => {
   });
 });
 
+// Whisper debug endpoint  
+app.get('/api/debug/whisper', async (req, res) => {
+  try {
+    const { WhisperService } = require('./services/whisperService');
+    
+    const debugInfo: any = {
+      hasOpenAiApiKey: !!process.env.OPENAI_API_KEY,
+      openAiApiKeyFormat: process.env.OPENAI_API_KEY ? 
+        process.env.OPENAI_API_KEY.substring(0, 8) + '...' : 'NOT_SET',
+      openAiApiKeyLength: process.env.OPENAI_API_KEY ? process.env.OPENAI_API_KEY.length : 0,
+      environment: process.env.NODE_ENV,
+      timestamp: new Date().toISOString()
+    };
+
+    try {
+      const whisperService = new WhisperService();
+      debugInfo.whisperServiceInitialized = true;
+    } catch (whisperError) {
+      debugInfo.whisperServiceInitialized = false;
+      debugInfo.whisperError = whisperError instanceof Error ? whisperError.message : String(whisperError);
+    }
+
+    res.json(debugInfo);
+  } catch (error) {
+    res.status(500).json({
+      error: error instanceof Error ? error.message : String(error),
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`🚀 Peanut Reading API server running on port ${PORT}`);
   console.log(`📚 Environment: ${process.env.NODE_ENV || 'development'}`);
+  
+  // Log service configuration status
+  console.log('🔍 Service Configuration Check:');
+  console.log('  - Supabase URL:', process.env.SUPABASE_URL ? '✅ Configured' : '❌ Missing');
+  console.log('  - Supabase Service Key:', process.env.SUPABASE_SERVICE_ROLE_KEY ? '✅ Configured' : '❌ Missing');
+  console.log('  - Google AI API Key:', process.env.GOOGLE_AI_API_KEY ? '✅ Configured' : '❌ Missing');
+  console.log('  - OpenAI API Key:', process.env.OPENAI_API_KEY ? '✅ Configured' : '❌ Missing');
+  console.log('  - Google Cloud Project:', process.env.GOOGLE_CLOUD_PROJECT_ID ? '✅ Configured' : '❌ Missing');
+  
+  // Initialize services to trigger debug logging
+  try {
+    const { WhisperService } = require('./services/whisperService');
+    new WhisperService();
+  } catch (error) {
+    console.log('⚠️ WhisperService initialization check failed:', error instanceof Error ? error.message : String(error));
+  }
 });
