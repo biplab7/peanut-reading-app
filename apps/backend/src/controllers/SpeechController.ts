@@ -41,7 +41,23 @@ export class SpeechController {
       let result;
 
       if (service === 'whisper') {
+        // Use Whisper service
+        console.log('🔍 Using Whisper Speech service for:', service);
+        console.log('📋 Whisper request details:', {
+          hasAudioBuffer: !!audioBuffer,
+          audioSize: audioBuffer?.length,
+          expectedText: expectedText,
+          languageCode: req.body.language || 'en',
+          hasWhisperService: !!this.whisperService,
+          childAge: req.body.childAge || 8
+        });
+        
+        if (!this.whisperService) {
+          throw createError('Whisper service not initialized. Check OpenAI API key configuration.', 503);
+        }
+        
         if (expectedText) {
+          console.log('🎯 Running Whisper child speech analysis...');
           // Use Whisper with child-specific analysis
           const childAge = parseInt(req.body.childAge) || 8;
           result = await this.whisperService.analyzeChildSpeech(audioBuffer, expectedText, {
@@ -49,10 +65,31 @@ export class SpeechController {
             language: req.body.language || 'en',
           });
         } else {
+          console.log('🎯 Running Whisper simple transcription...');
           // Simple transcription
           result = await this.whisperService.transcribeAudio(audioBuffer, {
             language: req.body.language || 'en',
           });
+        }
+        console.log('✅ Whisper processing completed:', { 
+          hasResult: !!result,
+          resultType: expectedText ? 'child_speech_analysis' : 'simple_transcription'
+        });
+        
+        // Transform Whisper result to match expected frontend format
+        if (expectedText && result && 'transcription' in result) {
+          // Child speech analysis result
+          const childResult = result as any;
+          result = {
+            transcript: childResult.transcription?.transcript || '',
+            confidence: childResult.transcription?.confidence || 0,
+            feedback: childResult.feedback?.encouragement || 'Speech processed successfully',
+            analysis: childResult.analysis,
+            transcription: childResult.transcription
+          };
+        } else if (result && 'transcript' in result) {
+          // Simple transcription result - already in correct format
+          // result = result; // No transformation needed
         }
       } else {
         // Use Google Speech-to-Text

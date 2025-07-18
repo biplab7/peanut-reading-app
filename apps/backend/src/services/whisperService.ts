@@ -7,14 +7,29 @@ export class WhisperService {
   constructor() {
     const apiKey = process.env.OPENAI_API_KEY;
     
+    console.log('🔍 WhisperService initialization debug:', {
+      hasApiKey: !!apiKey,
+      apiKeyLength: apiKey ? apiKey.length : 0,
+      apiKeyPrefix: apiKey ? `${apiKey.substring(0, 7)}...` : 'none',
+      nodeEnv: process.env.NODE_ENV
+    });
+    
     if (!apiKey) {
-      console.warn('OpenAI API key not configured - WhisperService will be disabled');
+      console.warn('❌ OpenAI API key not configured - WhisperService will be disabled');
       return;
     }
 
-    this.openai = new OpenAI({
-      apiKey,
-    });
+    try {
+      this.openai = new OpenAI({
+        apiKey,
+        timeout: 30000, // 30 second timeout
+        maxRetries: 2,
+      });
+      console.log('✅ WhisperService OpenAI client initialized successfully');
+    } catch (error) {
+      console.error('❌ Failed to initialize OpenAI client:', error);
+      throw error;
+    }
   }
 
   async transcribeAudio(audioBuffer: Buffer, options: {
@@ -23,7 +38,16 @@ export class WhisperService {
     temperature?: number;
     response_format?: 'json' | 'text' | 'srt' | 'verbose_json' | 'vtt';
   } = {}) {
+    console.log('🎤 WhisperService.transcribeAudio started');
+    console.log('🔍 Transcription request details:', {
+      hasOpenAI: !!this.openai,
+      audioBufferSize: audioBuffer.length,
+      audioSizeKB: Math.round(audioBuffer.length / 1024),
+      options
+    });
+    
     if (!this.openai) {
+      console.error('❌ WhisperService not initialized - missing OpenAI API key');
       throw createError('WhisperService not initialized - missing OpenAI API key', 503);
     }
     
@@ -35,11 +59,20 @@ export class WhisperService {
         response_format = 'verbose_json',
       } = options;
 
+      console.log('📁 Creating audio file object...');
       // Create a temporary file-like object for the API
       const audioFile = new File([audioBuffer], 'audio.webm', {
         type: 'audio/webm',
       });
+      console.log('✅ Audio file object created:', { 
+        name: audioFile.name, 
+        type: audioFile.type, 
+        size: audioFile.size 
+      });
 
+      console.log('🌐 Making OpenAI Whisper API call...');
+      const requestStart = Date.now();
+      
       const transcription = await this.openai.audio.transcriptions.create({
         file: audioFile,
         model: 'whisper-1',
@@ -48,6 +81,11 @@ export class WhisperService {
         temperature,
         response_format,
       });
+      
+      const requestEnd = Date.now();
+      console.log(`✅ Whisper API call completed in ${requestEnd - requestStart}ms`);
+      console.log('📝 Transcription response type:', typeof transcription);
+      console.log('📝 Transcription response keys:', Object.keys(transcription || {}));
 
       // Handle different response formats
       if (response_format === 'verbose_json' && typeof transcription === 'object') {
@@ -80,7 +118,31 @@ export class WhisperService {
         };
       }
     } catch (error) {
-      console.error('Whisper transcription error:', error);
+      console.error('❌ Whisper transcription error:');
+      console.error('🔍 Error details:', {
+        errorType: error instanceof Error ? error.constructor.name : typeof error,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        errorCode: (error as any)?.code,
+        errorStatus: (error as any)?.status,
+        errorCause: (error as any)?.cause,
+        errorStack: error instanceof Error ? error.stack : undefined
+      });
+      
+      // Check for specific connection issues
+      if (error instanceof Error) {
+        if (error.message.includes('ECONNRESET')) {
+          console.error('🌐 Connection reset by OpenAI server - possible network/timeout issue');
+        } else if (error.message.includes('ENOTFOUND')) {
+          console.error('🌐 DNS resolution failed - possible network connectivity issue');
+        } else if (error.message.includes('timeout')) {
+          console.error('⏰ Request timeout - OpenAI API took too long to respond');
+        } else if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+          console.error('🔑 Authentication failed - check OpenAI API key');
+        } else if (error.message.includes('429')) {
+          console.error('🚫 Rate limit exceeded - too many requests to OpenAI API');
+        }
+      }
+      
       throw createError('Whisper transcription failed', 500);
     }
   }
